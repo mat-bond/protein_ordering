@@ -1,28 +1,5 @@
 import torch
 from benchmarks.hamiltonian_path import hamiltonian_path
-from metrics.loss import masked_kabsch_mse_bidirectional
-
-def permutation_accuracy(pred, true):
-    # Backbone direction is ambiguous, so accept forward or reverse
-    acc_fwd = (pred == true).float().mean()
-    acc_rev = (pred.flip(0) == true).float().mean()
-
-    return max(acc_fwd.item(), acc_rev.item())
-
-
-def edge_accuracy(pred, true):
-    # Treat backbone edges as undirected so reversal does not matter
-    pred_edges = {
-        tuple(sorted((int(a), int(b))))
-        for a, b in zip(pred[:-1], pred[1:])
-    }
-
-    true_edges = {
-        tuple(sorted((int(a), int(b))))
-        for a, b in zip(true[:-1], true[1:])
-    }
-
-    return len(pred_edges & true_edges) / max(len(true_edges), 1)
 
 def correct_up_to_reverse(pred, true):
     return (
