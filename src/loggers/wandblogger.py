@@ -8,7 +8,6 @@ class LogConfig(pydantic.BaseModel):
     project: str
     entity: str
     results_dir: str
-    trainconfig: Any
 
 
 def load_logger(config: LogConfig):

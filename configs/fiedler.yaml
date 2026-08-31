@@ -15,7 +15,7 @@ data:
   uniform_scale: true
 
 
-trainer: &ref-trainer
+trainer: 
   module: trainer
   seed: 1111
   max_epochs: 50000
@@ -39,5 +39,4 @@ logger:
   module: loggers.wandblogger
   project: PointClouds
   entity: mat-bondarev-epfl
-  trainconfig: *ref-trainer
   results_dir: fiedler_train
