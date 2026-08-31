@@ -66,7 +66,7 @@ def masked_center_and_scale(
 
 class DataConfig(pydantic.BaseModel):
     module: str = "datasets.protein_clouds"
-    root_dir: str = "/work/lpdi/users/bondarev/inner-product-transforms/data/cath_npz_split" #DEBUG
+    root_dir: str = "./data/cath_npz_split"
     batch_size: int = 16
     num_workers: int = 0
     pin_memory: bool = True
