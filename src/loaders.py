@@ -65,61 +65,6 @@ def load_model(config, model_path=None):
         model = model_class(config)
     return model
 
-
-def load_transform(config):
-    transforms = []
-    for tr_config in config:
-        module = importlib.import_module(tr_config.module)
-        transform_class = getattr(module, "Transform")
-        transform = transform_class(tr_config)
-        transforms.append(transform)
-
-    return nn.Sequential(*transforms)
-
-
-# @timeit_decorator
-def load_object(obj):
-    if isinstance(obj, dict):
-        return SimpleNamespace(**obj)
-    else:
-        return obj
-
-
-def validate_configuration(run_config_dict: dict):
-    """
-    Loads the pydantic configuration object and checks if it is valid. This
-    ensures we can test all configurations for missing keys etc, before running
-    the experiments.
-    """
-
-    # Test the model config
-    module = importlib.import_module(run_config_dict["modelconfig"]["module"])
-    model_class = getattr(module, "BaseLightningModel")
-    config_class = getattr(module, "ModelConfig")
-    config_class(**run_config_dict["modelconfig"])
-
-    # Test the dataset
-    module = importlib.import_module(run_config_dict["data"]["module"])
-    model_class = getattr(module, "DataModule")
-    config_class = getattr(module, "DataModuleConfig")
-    config_class(**run_config_dict["data"])
-
-    assert "logger" in run_config_dict["loggers"]
-    assert "tags" in run_config_dict["loggers"]
-
-
-# @timeit_decorator
-def get_wandb_logger(config):
-    """
-    Loads the wandb logger.
-    """
-    wandb_logger = WandbLogger(
-        project=config.project, entity=config.entity, save_dir=config.save_dir
-    )
-
-    return wandb_logger
-
-
 def load_logger(config):
     """
     Loads the logger.

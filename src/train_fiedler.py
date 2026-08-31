@@ -47,7 +47,7 @@ from metrics.loss import (
     masked_kabsch_mse_bidirectional,
     drmsd_loss_bidirectional,
 )
-from protein_plot import plot_recon_3d
+from plotting import plot_recon_3d
 from protein_inspection import write_to_pdb, plot_rmsd_histogram
 
 from training.corruption import (

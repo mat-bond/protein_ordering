@@ -28,7 +28,7 @@ from loaders import (
     load_model,
     load_config
 )
-from protein_plot import plot_recon_3d
+from plotting import plot_recon_3d
 from protein_inspection import write_to_pdb, plot_rmsd_histogram
 torch.set_float32_matmul_precision("medium")
 
