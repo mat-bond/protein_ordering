@@ -25,8 +25,6 @@ import os
 import random
 from typing import Any
 
-os.environ["PYVISTA_OFF_SCREEN"] = "true"
-os.environ["VTK_USE_OFFSCREEN"] = "true"
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 import numpy as np

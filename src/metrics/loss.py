@@ -1,80 +1,302 @@
-from dataclasses import dataclass
-from typing import TypeAlias
 
 import torch
-import torch.nn.functional as F
-from kaolin.metrics.pointcloud import chamfer_distance
-from torchmetrics.regression import KLDivergence
 
-Tensor: TypeAlias = torch.Tensor
+def masked_kabsch_mse(pred, target, mask, min_n: int = 4, eps: float = 1e-8):
+    pred   = torch.nan_to_num(pred,   nan=0.0, posinf=0.0, neginf=0.0)
+    target = torch.nan_to_num(target, nan=0.0, posinf=0.0, neginf=0.0)
 
+    B, L, _ = pred.shape
+    mask_f = mask.to(dtype=pred.dtype)
+    n = mask_f.sum(dim=1)  # [B]
 
-def compute_mse_loss_fn(ect_hat, ect):
-    pixelwise = F.mse_loss(ect_hat, ect)
-    return pixelwise
+    good = n >= min_n
+    if not good.any():
+        return pred.new_tensor(0.0)
 
+    pred   = pred[good]
+    target = target[good]
+    mask_f = mask_f[good]
+    n = n[good].clamp_min(1.0)
 
-def compute_mse_kld_loss_beta_annealing_fn(
-    decoded_ect: Tensor,
-    z_mean: Tensor,
-    z_log_var: Tensor,
-    ect: Tensor,
-    current_epoch: int,
-    period: int,
-    beta_min: float,
-    beta_max: float,
-    prefix: str,
-) -> dict[str, Tensor]:
+    pred_centroid = (pred * mask_f[..., None]).sum(dim=1) / n[:, None]
+    tgt_centroid  = (target * mask_f[..., None]).sum(dim=1) / n[:, None]
+
+    X = (pred - pred_centroid[:, None, :]) * mask_f[..., None]
+    Y = (target - tgt_centroid[:, None, :]) * mask_f[..., None]
+
+    H = X.transpose(1, 2) @ Y
+    # optional stabilizer:
+    # H = H + 1e-4 * torch.eye(3, device=H.device, dtype=H.dtype).unsqueeze(0)
+
+    U, S, Vh = torch.linalg.svd(H)
+    V = Vh.transpose(-2, -1)
+
+    d = torch.det(V @ U.transpose(-2, -1))
+    D = torch.eye(3, device=pred.device, dtype=pred.dtype).unsqueeze(0).repeat(V.shape[0], 1, 1)
+    D[:, 2, 2] = torch.where(d < 0, -1.0, 1.0)
+
+    R = V @ D @ U.transpose(-2, -1)
+
+    X_rot = X @ R
+
+    diff2 = ((X_rot - Y) ** 2).sum(dim=-1) * mask_f  # [Bg, L]
+    return diff2.sum() / n.sum().clamp_min(1.0)
+
+def masked_kabsch_mse_per_example(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+    min_n: int = 4,
+    eps: float = 1e-8,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Computes an annealed schedule for the KL Loss and the MSE Loss.
-    It starts with a pure reconstruction loss and cycles every max-epochs.
+    Returns:
+      mse_sum_per_ex: [B]
+      count_per_ex:   [B]
+    so global mse = mse_sum_per_ex.sum() / count_per_ex.sum()
     """
+    pred = torch.nan_to_num(pred, nan=0.0, posinf=0.0, neginf=0.0)
+    target = torch.nan_to_num(target, nan=0.0, posinf=0.0, neginf=0.0)
 
-    beta = (beta_max - beta_min) * (
-        1 - torch.cos(2 * torch.pi * torch.tensor(current_epoch - 100) / period)
-    ) / 2 + beta_min
+    B, L, _ = pred.shape
+    mask_f = mask.to(dtype=pred.dtype)
+    n = mask_f.sum(dim=1)  # [B]
 
-    # First focus on recon loss.
-    if current_epoch < 100:
-        beta = beta_min
+    mse_sum = pred.new_zeros(B)
+    count = pred.new_zeros(B)
 
-    # # beta = 0.0005
-    beta = 0.01
+    good = n >= min_n
+    if not good.any():
+        return mse_sum, count
 
-    kld_loss = torch.mean(
-        -0.5 * torch.sum(1 + z_log_var - z_mean**2 - z_log_var.exp(), dim=1), dim=0
+    pred_g = pred[good]
+    target_g = target[good]
+    mask_f_g = mask_f[good]
+    n_g = n[good].clamp_min(1.0)
+
+    pred_centroid = (pred_g * mask_f_g[..., None]).sum(dim=1) / n_g[:, None]
+    tgt_centroid = (target_g * mask_f_g[..., None]).sum(dim=1) / n_g[:, None]
+
+    X = (pred_g - pred_centroid[:, None, :]) * mask_f_g[..., None]
+    Y = (target_g - tgt_centroid[:, None, :]) * mask_f_g[..., None]
+
+    H = X.transpose(1, 2) @ Y
+
+    U, S, Vh = torch.linalg.svd(H)
+    V = Vh.transpose(-2, -1)
+
+    d = torch.det(V @ U.transpose(-2, -1))
+    D = torch.eye(3, device=pred.device, dtype=pred.dtype).unsqueeze(0).repeat(V.shape[0], 1, 1)
+    D[:, 2, 2] = torch.where(d < 0, -1.0, 1.0)
+
+    R = V @ D @ U.transpose(-2, -1)
+    X_rot = X @ R
+
+    diff2 = ((X_rot - Y) ** 2).sum(dim=-1) * mask_f_g   # [Bg, L]
+    mse_sum_g = diff2.sum(dim=1)                        # [Bg]
+
+    mse_sum[good] = mse_sum_g
+    count[good] = n_g
+
+    return mse_sum, count
+
+def reverse_valid_order(x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    out = x.clone()
+    B, L = mask.shape
+    for b in range(B):
+        valid_idx = mask[b].nonzero(as_tuple=True)[0]
+        if valid_idx.numel() <= 1:
+            continue
+        out[b, valid_idx] = x[b, valid_idx.flip(0)]
+    return out
+
+def masked_kabsch_mse_bidirectional(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+    min_n: int = 4,
+    eps: float = 1e-8,
+):
+    target_rev = reverse_valid_order(target, mask)
+
+    mse_sum_fwd, count_fwd = masked_kabsch_mse_per_example(
+        pred, target, mask, min_n=min_n, eps=eps
+    )
+    mse_sum_rev, count_rev = masked_kabsch_mse_per_example(
+        pred, target_rev, mask, min_n=min_n, eps=eps
     )
 
-    mse_loss = F.mse_loss(decoded_ect, ect, reduction="mean")
+    mean_fwd = mse_sum_fwd / count_fwd.clamp_min(1.0)
+    mean_rev = mse_sum_rev / count_rev.clamp_min(1.0)
 
-    return {
-        f"{prefix}loss": mse_loss + beta * kld_loss,
-        f"{prefix}kld_loss": kld_loss,
-        f"{prefix}ect_loss": mse_loss,
-        "beta": beta,
-    }
+    choose_rev = mean_rev < mean_fwd
+
+    chosen_sum = torch.where(choose_rev, mse_sum_rev, mse_sum_fwd)
+    chosen_count = torch.where(choose_rev, count_rev, count_fwd)
+
+    per_example = chosen_sum / chosen_count.clamp_min(1.0)
+
+    good = chosen_count > 0
+    batch_mean = per_example[good].mean() if good.any() else pred.new_tensor(0.0)
+
+    return batch_mean, per_example, chosen_count
+
+def drmsd_loss_per_example(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    min_n: int = 2,
+    eps: float = 1e-8,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Returns:
+      drmsd_sum_per_ex: [B]   numerator per example
+      pair_count_per_ex: [B]  denominator per example
+
+    Global loss:
+      drmsd = (drmsd_sum_per_ex / pair_count_per_ex.clamp_min(1)).sqrt()
+      but for bidirectional selection we compare per-example drmsd values first.
+    """
+    x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+    y = torch.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+
+    B, L, _ = x.shape
+    device = x.device
+    dtype = x.dtype
+
+    mask_f = mask.to(dtype=dtype)
+    n = mask_f.sum(dim=1)  # [B]
+
+    drmsd_sum = x.new_zeros(B)
+    pair_count = x.new_zeros(B)
+
+    good = n >= min_n
+    if not good.any():
+        return drmsd_sum, pair_count
+
+    xg = x[good]          # [Bg, L, 3]
+    yg = y[good]
+    mg = mask_f[good]     # [Bg, L]
+
+    dx = torch.cdist(xg, xg)   # [Bg, L, L]
+    dy = torch.cdist(yg, yg)   # [Bg, L, L]
+
+    pair = mg[:, :, None] * mg[:, None, :]  # [Bg, L, L]
+    eye = torch.eye(L, device=device, dtype=dtype).unsqueeze(0)
+    pair = pair * (1.0 - eye)  # exclude diagonal
+
+    sq = ((dx - dy) ** 2) * pair                 # [Bg, L, L]
+    drmsd_sum_g = sq.sum(dim=(1, 2))             # [Bg]
+    pair_count_g = pair.sum(dim=(1, 2)).clamp_min(1.0)  # [Bg]
+
+    drmsd_sum[good] = drmsd_sum_g
+    pair_count[good] = pair_count_g
+
+    return drmsd_sum, pair_count
 
 
-# I am not sure if I used mean or sum here.
-def compute_mse_kld_loss_fn(decoded, mu, log_var, ect, beta=0.0):
-    kld_loss = torch.mean(
-        -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+def drmsd_loss(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    min_n: int = 2,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    Standard masked dRMSD averaged over examples.
+    """
+    drmsd_sum, pair_count = drmsd_loss_per_example(
+        x, y, mask, min_n=min_n, eps=eps
+    )
+    good = pair_count > 0
+    if not good.any():
+        return x.new_tensor(0.0)
+
+    drmsd_per_ex = torch.sqrt(drmsd_sum[good] / pair_count[good].clamp_min(eps))
+    return drmsd_per_ex.mean()
+
+
+def drmsd_loss_bidirectional(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    min_n: int = 2,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """
+    Bidirectional masked dRMSD.
+    For each example independently, choose the smaller of:
+      - dRMSD(x, y)
+      - dRMSD(x, reverse_valid_order(y))
+    Then average over examples.
+    """
+    y_rev = reverse_valid_order(y, mask)
+
+    sum_fwd, count_fwd = drmsd_loss_per_example(
+        x, y, mask, min_n=min_n, eps=eps
+    )
+    sum_rev, count_rev = drmsd_loss_per_example(
+        x, y_rev, mask, min_n=min_n, eps=eps
     )
 
-    mse_loss = F.mse_loss(decoded, ect, reduction="mean")
+    good_fwd = count_fwd > 0
+    good_rev = count_rev > 0
+    good = good_fwd | good_rev
+    if not good.any():
+        return x.new_tensor(0.0)
 
-    return mse_loss + beta * kld_loss, kld_loss, mse_loss
+    loss_fwd = torch.full_like(sum_fwd, float("inf"))
+    loss_rev = torch.full_like(sum_rev, float("inf"))
 
+    loss_fwd[good_fwd] = torch.sqrt(sum_fwd[good_fwd] / count_fwd[good_fwd].clamp_min(eps))
+    loss_rev[good_rev] = torch.sqrt(sum_rev[good_rev] / count_rev[good_rev].clamp_min(eps))
 
-def chamfer(pred_pc, ref_pc):
-    if pred_pc.shape[-1] == 2:
-        pred_pc = F.pad(input=pred_pc, pad=(0, 1, 0, 0, 0, 0), mode="constant", value=0)
-        ref_pc = F.pad(input=ref_pc, pad=(0, 1, 0, 0, 0, 0), mode="constant", value=0)
-    return chamfer_distance(pred_pc, ref_pc).mean()
+    chosen = torch.minimum(loss_fwd, loss_rev)
+    return chosen[good].mean()
 
-# Backwards-compatible aliases expected by encoder_ect.py
-def chamfer2DECT(pred_pc, ref_pc):
-    return chamfer(pred_pc, ref_pc)
+def masked_mse_no_align(pred, target, mask, pad_value=0.0):
+    assert pred.shape == target.shape and pred.ndim == 3 and pred.shape[-1] == 3
+    assert mask.shape == pred.shape[:2]
 
-def chamfer3DECT(pred_pc, ref_pc):
-    return chamfer(pred_pc, ref_pc)
+    pred   = torch.nan_to_num(pred,   nan=pad_value, posinf=pad_value, neginf=pad_value)
+    target = torch.nan_to_num(target, nan=pad_value, posinf=pad_value, neginf=pad_value)
+
+    mask_f = mask.to(dtype=pred.dtype)
+    n = mask_f.sum(dim=1).clamp_min(1.0)
+
+    diff2 = ((pred - target) ** 2).sum(dim=-1) * mask_f
+    return (diff2.sum(dim=1) / n).mean()
+
+def compute_confidence_scores(
+    assignment_logits: torch.Tensor,
+    mask: torch.Tensor,
+    target_mask: torch.Tensor | None = None,
+):
+    """
+    Normalized-entropy confidence per ordered slot.
+
+    Returns [B, T] in [0, 1], where 1 is most confident.
+    Invalid target slots are set to 0.
+    """
+    if target_mask is None:
+        target_mask = mask
+
+    very_neg = torch.finfo(assignment_logits.dtype).min
+    masked_logits = assignment_logits.masked_fill(
+        ~mask[:, None, :], very_neg
+    )
+    p = torch.softmax(masked_logits, dim=-1)
+    entropy = -(p * torch.log(p.clamp_min(1e-8))).sum(dim=-1)
+
+    n_valid = mask.sum(dim=-1).clamp_min(1).to(assignment_logits.dtype)
+    max_entropy = torch.log(n_valid)
+    conf = torch.ones_like(entropy)
+
+    multi = n_valid > 1
+    if multi.any():
+        conf[multi] = 1.0 - (
+            entropy[multi] / max_entropy[multi].unsqueeze(-1)
+        )
+
+    conf = conf.masked_fill(~target_mask, 0.0)
+    return conf.clamp(0.0, 1.0)
