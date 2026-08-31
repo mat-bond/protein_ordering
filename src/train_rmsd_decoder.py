@@ -1049,8 +1049,7 @@ def main():
         resume_best = True
     (
         dataconfig,
-        rmsd_modelconfig,
-        cloud_modelconfig,
+        modelconfig,
         trainerconfig,
         loggerconfig,
     )= load_config(args.config_path)
@@ -1121,13 +1120,13 @@ def main():
     dataloader = fabric.setup_dataloaders(train_dl)
     valdataloader = fabric.setup_dataloaders(val_dl)
 
-    rmsd_model = load_model(rmsd_modelconfig)
+    rmsd_model = load_model(modelconfig)
     
     print(summary(rmsd_model))
     
     optimizer = torch.optim.AdamW(
         rmsd_model.parameters(),
-        lr=rmsd_modelconfig.learning_rate,
+        lr=modelconfig.learning_rate,
         weight_decay=0.01,
     )
 

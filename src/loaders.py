@@ -36,39 +36,6 @@ def load_module(config_dict: dict[Any, Any], classname: str) -> pydantic.BaseMod
         config = config_class(**config_dict)
     return config
 
-
-def load_config(path: str):
-    """
-    Loads the configuration yaml and parses it into an object with dot access.
-    """
-    with open(path, encoding="utf-8") as stream:
-        # Load dict
-        config_dict: dict[str, Any] = yaml.safe_load(stream)
-
-    # Data
-    dataconfig = load_module(config_dict["data"], classname="DataConfig")
-
-    # Transform
-    transform_list = config_dict.get("transform", None)
-    transformconfig = None
-    if transform_list is not None:
-        transformconfig = [
-            load_module(cfg, classname="TransformConfig")
-            for cfg in config_dict["transform"]
-        ]
-
-    # Model
-    modelconfig = load_module(config_dict["modelconfig"], classname="ModelConfig")
-
-    # Trainer
-    trainerconfig = load_module(config_dict["trainer"], classname="TrainerConfig")
-
-    # Logger
-    loggerconfig = load_module(config_dict["logger"], classname="LogConfig")
-
-    return dataconfig, transformconfig, modelconfig, trainerconfig, loggerconfig
-
-
 def load_datamodule(config, dev: bool = False):
     module = importlib.import_module(config.module)
     train_dl, val_dl, test_dl, m, s = module.get_all_dataloaders(config, dev=dev)
@@ -116,20 +83,6 @@ def load_object(obj):
         return SimpleNamespace(**obj)
     else:
         return obj
-
-
-# # @timeit_decorator
-# def load_config(path):
-#     """
-#     Loads the configuration yaml and parses it into an object with dot access.
-#     """
-#     with open(path, encoding="utf-8") as stream:
-#         # Load dict
-#         config_dict = yaml.safe_load(stream)
-#
-#         # Convert to namespace (access via config.data etc)
-#         config = json.loads(json.dumps(config_dict), object_hook=load_object)
-#     return config, config_dict
 
 
 def validate_configuration(run_config_dict: dict):

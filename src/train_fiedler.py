@@ -12,12 +12,10 @@ the same training/validation point-cloud preparation used by the supplied setup.
 Typical run from repository root:
     uv run python src/train_fiedler_e2e.py \
         --config configs/proteins_sep.yaml \
-        --model-module models.fiedler_ordering_model
 
 Quick debug:
     uv run python src/train_fiedler_e2e.py \
         --config configs/proteins_sep.yaml \
-        --model-module models.fiedler_ordering_model \
         --overfit128 --max-train-batches 4 --max-val-batches 4
 """
 
@@ -982,14 +980,6 @@ def parse_args():
         dest="config_path",
         default="configs/encoder_airplane.yaml",
     )
-    p.add_argument(
-        "--model-module",
-        default="models.fiedler_ordering_model",
-        help=(
-            "Python module containing ModelConfig and Model. "
-            "This overrides rmsd_modelconfig.module in the YAML."
-        ),
-    )
     p.add_argument("--dev", action="store_true")
     p.add_argument("--overfit128", action="store_true")
     p.add_argument("--resume", action="store_true")
@@ -1085,13 +1075,11 @@ def main():
 
     (
         dataconfig,
-        rmsd_modelconfig,
-        _cloud_modelconfig,
+        modelconfig,
         trainerconfig,
         loggerconfig,
     ) = load_config(
         args.config_path,
-        model_module_override=args.model_module,
     )
 
     seed_everything(trainerconfig.seed, workers=True)
@@ -1114,7 +1102,7 @@ def main():
     logger.log_hyperparams({
         **vars(args),
         "seed": trainerconfig.seed,
-        "model_config": config_to_dict(rmsd_modelconfig),
+        "model_config": config_to_dict(modelconfig),
         "trainer_config": config_to_dict(trainerconfig),
         "data_config": config_to_dict(dataconfig),
     })
@@ -1165,10 +1153,10 @@ def main():
     valdataloader = fabric.setup_dataloaders(val_dl)
     testdataloader = fabric.setup_dataloaders(test_dl)
 
-    model = load_model(rmsd_modelconfig)
+    model = load_model(modelconfig)
     print(summary(model))
 
-    lr = args.lr if args.lr is not None else rmsd_modelconfig.learning_rate
+    lr = args.lr if args.lr is not None else modelconfig.learning_rate
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
