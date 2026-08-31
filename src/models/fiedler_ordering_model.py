@@ -29,8 +29,8 @@ from .Equiformer.equiformer.nets.graph_attention_transformer import (
     EdgeDegreeEmbeddingNetwork,
     TransBlock,
 )
-from modules.graph_encoder import PointCloudEquiformerEncoder
-from modules.edge_layers import EdgeGraphLayer
+from .modules.graph_encoder import PointCloudEquiformerEncoder
+from .modules.edge_layers import EdgeGraphLayer
 
 Tensor: TypeAlias = torch.Tensor
 _RESCALE = True

@@ -36,8 +36,8 @@ from .Equiformer.equiformer.nets.graph_attention_transformer import (
     EdgeDegreeEmbeddingNetwork,
     TransBlock,
 )
-from modules.graph_encoder import PointCloudEquiformerEncoder
-from modules.edge_layers import EdgeGraphLayer
+from .modules.graph_encoder import PointCloudEquiformerEncoder
+from .modules.edge_layers import EdgeGraphLayer
 
 Tensor: TypeAlias = torch.Tensor
 ### Gumbell-Softmax operation taken from https://arxiv.org/pdf/1802.08665 and https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/sampling/permutations.html
