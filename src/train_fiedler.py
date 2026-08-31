@@ -1066,11 +1066,14 @@ def main():
         args.config_path,
     )
 
-    seed_everything(trainerconfig.seed, workers=True)
-    random.seed(trainerconfig.seed)
-    np.random.seed(trainerconfig.seed)
+    seed = args.seed if args.seed is not None else trainerconfig.seed
+
+    seed_everything(seed, workers=True)
+    random.seed(seed)
+    np.random.seed(seed)
+
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(trainerconfig.seed)
+        torch.cuda.manual_seed_all(seed)
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -1225,7 +1228,6 @@ def main():
     print("Train batches:", len(dataloader))
     print("Validation batches:", len(valdataloader))
     print("Test batches: ", len(testdataloader))
-    print("Model module:", args.model_module)
     print(
         "Spectral schedule:",
         f"warmup={args.edge_warmup_steps}",
