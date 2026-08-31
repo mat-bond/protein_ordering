@@ -4,10 +4,6 @@ import pydantic
 import torch
 from torch import nn
 
-
-import torch
-
-
 from .modules.graph_encoder import PointCloudEquiformerEncoder
 from .modules.edge_layers import EdgeGraphLayer
 
@@ -64,8 +60,6 @@ class SinusoidalPositionalEncoding(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         # x: [B, T, D]
         return x + self.pe[:, : x.size(1), :]
-
-Tensor: TypeAlias = torch.Tensor
 
 class EdgeScorer(nn.Module):
     def __init__(self, d_model, num_layers=3, dropout=0.1):

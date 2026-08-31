@@ -36,6 +36,7 @@ from training.corruption import (
     reverse_target_col,
 )
 from metrics.loss import compute_confidence_scores
+from loaders import config_to_dict
 
 def get_rng_state():
     state = {
@@ -1068,6 +1069,15 @@ def main():
     )
 
     logger = load_logger(loggerconfig)
+
+    logger.log_hyperparams({
+        **vars(args),
+        "seed": trainerconfig.seed,
+        "model_config": config_to_dict(modelconfig),
+        "trainer_config": config_to_dict(trainerconfig),
+        "data_config": config_to_dict(dataconfig),
+    })
+
     dm = load_datamodule(dataconfig, dev=dev)
 
     from torch.utils.data import DataLoader, Subset
@@ -1188,6 +1198,11 @@ def main():
             if args.test_best
             else valdataloader
         )
+        eval_tau = val_tau
+
+        if args.test_best and args.test_tau is not None:
+            eval_tau = args.test_tau
+
         split_name = "test" if args.test_best else "val"
 
         rmsd_model.eval()
@@ -1214,7 +1229,8 @@ def main():
             W_ECE=args.w_edge,
             inspect_best_only=inspect_best_only,
             pdb_inspect_amount=args.pdb_inspect_amount,
-            assignment_tau=val_tau
+            assignment_tau=eval_tau,
+            split_name=split_name
         )
     else:
         run_benchmarks(valdataloader, no_progressbar, fabric, n_starts=500)

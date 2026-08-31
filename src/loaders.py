@@ -81,3 +81,10 @@ def load_config(path: str):
         trainerconfig,
         loggerconfig,
     )
+
+def config_to_dict(config):
+    if hasattr(config, "model_dump"):  # pydantic v2
+        return config.model_dump()
+    if hasattr(config, "dict"):        # pydantic v1
+        return config.dict()
+    return vars(config)

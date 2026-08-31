@@ -46,20 +46,12 @@ from training.corruption import (
     reverse_target_col,
 )
 from metrics.loss import compute_confidence_scores
-
+from loaders import config_to_dict
 torch.set_float32_matmul_precision("medium")
 
 # -----------------------------------------------------------------------------
 # Config / checkpoint plumbing: same conventions as the supplied trainer
 # -----------------------------------------------------------------------------
-
-def config_to_dict(config):
-    if hasattr(config, "model_dump"):  # pydantic v2
-        return config.model_dump()
-    if hasattr(config, "dict"):        # pydantic v1
-        return config.dict()
-    return vars(config)
-
 
 def get_rng_state():
     state = {

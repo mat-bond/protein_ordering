@@ -5,8 +5,6 @@ adjacency followed by a Fiedler spectral ordering layer and Sinkhorn.
 Expected placement:
     src/models/fiedler_ordering_model.py
 
-Set/override rmsd_modelconfig.module to:
-    models.fiedler_ordering_model
 """
 
 from typing import Optional, TypeAlias
