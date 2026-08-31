@@ -952,7 +952,7 @@ def main():
     parser.add_argument(
         "--config",
         dest="config_path",
-        default="configs/encoder_airplane.yaml",
+        default="configs/rmsd.yaml",
         type=str,
     )
     parser.add_argument(

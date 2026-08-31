@@ -978,7 +978,7 @@ def parse_args():
     p.add_argument(
         "--config",
         dest="config_path",
-        default="configs/encoder_airplane.yaml",
+        default="configs/fiedler.yaml",
     )
     p.add_argument("--dev", action="store_true")
     p.add_argument("--overfit128", action="store_true")
