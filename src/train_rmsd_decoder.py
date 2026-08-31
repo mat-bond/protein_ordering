@@ -6,7 +6,7 @@ from numpy import sqrt
 import numpy as np
 import yaml
 
-from metrics.protein_loss import masked_kabsch_mse_bidirectional, chamfer_masked, drmsd_loss_bidirectional
+from metrics.protein_loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
 from tests.hamiltonian_path_test import run_hamiltonian_benchmark
 
 os.environ["PYVISTA_OFF_SCREEN"] = "true"
@@ -493,7 +493,6 @@ def train(
 
             mse, per_example_mse, count = masked_kabsch_mse_bidirectional(xyz_ord, pcs_gt, mask)
             dr = drmsd_loss_bidirectional(xyz_ord, pcs_gt, mask)
-            cd_in = chamfer_masked(cloud_in, pcs_gt, mask)
             edge_ce, edge_pos_frac = edge_ce_loss(edge_logits,target_col,mask,edge_src,edge_dst)
             good = count > 0
             rmsd = torch.mean(100.0 * torch.sqrt(per_example_mse[good].clamp_min(1e-12)))
@@ -546,7 +545,6 @@ def train(
                     "perm_acc": perm_acc.item(),
                     "Chance gap": gap.item(),
                     "RMSD (Å)": rmsd.item(),
-                    "CD_input_vs_gt": cd_in.item(),
                     "Edge CE": edge_ce.item(),
                     "Edge pos frac": edge_pos_frac.item(),
                     "Dist loss": dist_loss.item()
@@ -692,7 +690,6 @@ def validate(
 
     total_loss = 0.0
     total_mse = 0.0
-    total_cd_in = 0.0
     total_items = 0
     total_dr = 0.0
     total_perm_ce = 0.0
@@ -733,7 +730,6 @@ def validate(
 
         mse, per_example_mse, count = masked_kabsch_mse_bidirectional(xyz_ord, pcs_gt, mask)
         dr = drmsd_loss_bidirectional(xyz_ord, pcs_gt, mask)
-        cd_in = chamfer_masked(cloud_in, pcs_gt, mask)
         edge_ce, _ = edge_ce_loss(edge_logits,target_col,mask,edge_src,edge_dst)
 
         perm_ce, perm_acc, chance_ce = permutation_ce_and_acc_bidirectional(
@@ -760,7 +756,6 @@ def validate(
         B = pcs_gt.shape[0]
         total_loss += float(loss.item()) * B
         total_mse += float(mse.item()) * B
-        total_cd_in += float(cd_in.item()) * B
         total_dr += float(dr.item()) * B
         n_valid_rows = int(mask.sum().item())
         total_perm_ce += float(perm_ce.item()) * n_valid_rows
@@ -781,7 +776,6 @@ def validate(
     
     mean_loss = total_loss / max(total_items, 1)
     mean_mse = total_mse / max(total_items, 1)
-    mean_cd_in = total_cd_in / max(total_items, 1)
     mean_dr = total_dr / max(total_items, 1)
     mean_perm_ce = total_perm_ce / max(total_perm_items, 1)
     mean_perm_acc = total_perm_acc / max(total_perm_items, 1) 
@@ -796,7 +790,6 @@ def validate(
                 f"{split_name}_loss": mean_loss,
                 f"{split_name}_mse": mean_mse,
                 f"{split_name} RMSD (Å)": mean_rmsd,
-                f"{split_name} CD_input_vs_gt": mean_cd_in,
                 f"{split_name} DR": mean_dr,
                 f"{split_name}_perm_ce": mean_perm_ce,
                 f"{split_name}_perm_acc": mean_perm_acc,

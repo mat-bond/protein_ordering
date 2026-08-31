@@ -47,7 +47,6 @@ from loaders import (
 )
 from metrics.protein_loss import (
     masked_kabsch_mse_bidirectional,
-    chamfer_masked,
     drmsd_loss_bidirectional,
 )
 from protein_plot import plot_recon_3d

@@ -1,8 +1,6 @@
 
 import torch
 
-from metrics.loss import chamfer
-
 def masked_kabsch_mse(pred, target, mask, min_n: int = 4, eps: float = 1e-8):
     pred   = torch.nan_to_num(pred,   nan=0.0, posinf=0.0, neginf=0.0)
     target = torch.nan_to_num(target, nan=0.0, posinf=0.0, neginf=0.0)
@@ -268,38 +266,6 @@ def masked_mse_no_align(pred, target, mask, pad_value=0.0):
 
     diff2 = ((pred - target) ** 2).sum(dim=-1) * mask_f
     return (diff2.sum(dim=1) / n).mean()
-
-
-def chamfer_masked(pred_pc: torch.Tensor,
-                   ref_pc: torch.Tensor,
-                   mask: torch.Tensor,
-                   pad_value: float = 0.0) -> torch.Tensor:
-    assert pred_pc.shape == ref_pc.shape and pred_pc.ndim == 3
-    assert mask.shape == pred_pc.shape[:2]
-
-    
-    pred_pc = torch.nan_to_num(pred_pc, nan=pad_value, posinf=pad_value, neginf=pad_value)
-    ref_pc  = torch.nan_to_num(ref_pc,  nan=pad_value, posinf=pad_value, neginf=pad_value)
-
-    B, Lmax, D = pred_pc.shape
-    pred_list = [pred_pc[b, mask[b]] for b in range(B)]
-    ref_list  = [ref_pc[b,  mask[b]] for b in range(B)]
-
-    Lb = max(int(x.shape[0]) for x in pred_list + ref_list)
-    Lb = max(Lb, 1)
-
-    pred_pad = pred_pc.new_full((B, Lb, D), pad_value)
-    ref_pad  = ref_pc.new_full((B, Lb, D), pad_value)
-
-    for b in range(B):
-        lp = min(pred_list[b].shape[0], Lb)
-        lr = min(ref_list[b].shape[0],  Lb)
-        if lp > 0:
-            pred_pad[b, :lp] = pred_list[b][:lp]
-        if lr > 0:
-            ref_pad[b, :lr]  = ref_list[b][:lr]
-
-    return chamfer(pred_pad, ref_pad)
 
 def compute_confidence_scores(
     assignment_logits: torch.Tensor,
