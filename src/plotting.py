@@ -1,14 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
 import matplotlib
 
-matplotlib.use("Agg")  # headless HPC nodes
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
 
 LIGHTRED = [255, 100, 100]
 
@@ -185,100 +181,3 @@ def plot_recon_3d(
 
     return fig
 
-# def plot_recon_3d(
-#     recon_pcs,
-#     ref_pcs=None,
-#     num_pc=5,
-#     offset=0,
-#     filename=None,
-#     point_size=2,
-#     align_to_ref=True,   # <-- new: apply Kabsch if ref is provided
-# ):
-#     """
-#     If ref_pcs is provided and align_to_ref=True:
-#       - Kabsch-align recon to ref per protein before plotting
-#       - Recon-only panel shows aligned recon (so it's in ref frame)
-#       - Overlay panel shows ref + aligned recon
-#     """
-#     recon_pcs = _to_numpy(recon_pcs)
-#     ref_pcs = _to_numpy(ref_pcs) if ref_pcs is not None else None
-
-#     fig = plt.figure(figsize=(2 * num_pc, 6))
-
-#     for col in range(num_pc):
-#         recon_pts = recon_pcs[col + offset].reshape(-1, 3)
-
-#         ref_pts = None
-#         recon_plot = recon_pts
-
-#         if ref_pcs is not None:
-#             ref_pts = ref_pcs[col + offset].reshape(-1, 3)
-
-#             # Ensure same number of points for Kabsch (trim to common length)
-#             n = min(recon_pts.shape[0], ref_pts.shape[0])
-#             recon_trim = recon_pts[:n]
-#             ref_trim   = ref_pts[:n]
-
-#             if align_to_ref:
-#                 recon_aligned = kabsch_align(recon_trim, ref_trim)
-#                 # If recon/ref had unequal lengths, keep unmatched tail unaligned (rare in your usage)
-#                 if recon_pts.shape[0] == n:
-#                     recon_plot = recon_aligned
-#                 else:
-#                     recon_plot = np.concatenate([recon_aligned, recon_pts[n:]], axis=0)
-
-#         # 1) Recon (aligned if ref provided)
-#         ax = fig.add_subplot(3, num_pc, 1 + col, projection="3d")
-#         ax.scatter(
-#             recon_plot[:, 0],
-#             recon_plot[:, 1],
-#             recon_plot[:, 2],
-#             s=point_size,
-#             c=_mpl_color("lightgray"),
-#         )
-#         _set_3d_equal(ax, recon_plot)
-#         _style_3d_ax(ax)
-#         ax.view_init(elev=30, azim=45)
-
-#         if ref_pts is not None:
-#             # 2) Overlay: ref + recon (aligned)
-#             ax = fig.add_subplot(3, num_pc, 1 + num_pc + col, projection="3d")
-#             ax.scatter(
-#                 ref_pts[:, 0],
-#                 ref_pts[:, 1],
-#                 ref_pts[:, 2],
-#                 s=point_size,
-#                 c=_mpl_color(LIGHTRED),
-#             )
-#             ax.scatter(
-#                 recon_plot[:, 0],
-#                 recon_plot[:, 1],
-#                 recon_plot[:, 2],
-#                 s=point_size,
-#                 c=_mpl_color("lightgray"),
-#             )
-#             _set_3d_equal(ax, np.vstack([ref_pts, recon_plot]))
-#             _style_3d_ax(ax)
-#             ax.view_init(elev=30, azim=45)
-
-#             # 3) Ref only
-#             ax = fig.add_subplot(3, num_pc, 1 + 2 * num_pc + col, projection="3d")
-#             ax.scatter(
-#                 ref_pts[:, 0],
-#                 ref_pts[:, 1],
-#                 ref_pts[:, 2],
-#                 s=point_size,
-#                 c=_mpl_color(LIGHTRED),
-#             )
-#             _set_3d_equal(ax, ref_pts)
-#             _style_3d_ax(ax)
-#             ax.view_init(elev=30, azim=45)
-
-#     plt.tight_layout()
-#     if filename is not None:
-#         plt.savefig(filename, dpi=200)
-#         plt.close(fig)
-#     else:
-#         plt.show()
-
-#     return fig
