@@ -34,6 +34,15 @@ from protein_plot import plot_recon_3d
 from protein_inspection import write_to_pdb, plot_rmsd_histogram
 torch.set_float32_matmul_precision("medium")
 
+from training.corruption import (
+    random_rotation_matrix,
+    apply_rotation_masked,
+    add_masked_coord_jitter,
+    make_uniformly_permuted_cloud,
+    make_uniformly_permuted_cloud_deterministic,
+    reverse_target_col,
+)
+from metrics.protein_loss import compute_confidence_scores
 
 def get_rng_state():
     state = {
@@ -136,36 +145,6 @@ def rotation_matrix_from_seed(seed: int, device=None, dtype=torch.float32):
 def fill_nans_for_ect(ca: torch.Tensor) -> torch.Tensor:
     # simplest: doesn’t crash ECT; mask will exclude invalid residues in losses
     return torch.nan_to_num(ca, nan=0.0, posinf=0.0, neginf=0.0)
-
-def random_rotation_matrix(device=None, dtype=torch.float32):
-    """
-    Sample a random rotation matrix in SO(3) uniformly (Haar).
-    Uses random unit quaternion.
-    Returns: [3,3]
-    """
-    u1 = torch.rand((), device=device, dtype=dtype)
-    u2 = torch.rand((), device=device, dtype=dtype)
-    u3 = torch.rand((), device=device, dtype=dtype)
-
-    q1 = torch.sqrt(1 - u1) * torch.sin(2 * torch.pi * u2)
-    q2 = torch.sqrt(1 - u1) * torch.cos(2 * torch.pi * u2)
-    q3 = torch.sqrt(u1)     * torch.sin(2 * torch.pi * u3)
-    q4 = torch.sqrt(u1)     * torch.cos(2 * torch.pi * u3)
-
-    # quaternion (x,y,z,w) = (q1,q2,q3,q4)
-    x, y, z, w = q1, q2, q3, q4
-
-    R = torch.stack([
-        torch.stack([1 - 2*(y*y + z*z),     2*(x*y - z*w),     2*(x*z + y*w)]),
-        torch.stack([    2*(x*y + z*w), 1 - 2*(x*x + z*z),     2*(y*z - x*w)]),
-        torch.stack([    2*(x*z - y*w),     2*(y*z + x*w), 1 - 2*(x*x + y*y)]),
-    ])
-    return R
-    
-def apply_rotation_masked(ca: torch.Tensor, valid: torch.Tensor, R: torch.Tensor):
-    out = ca.clone()
-    out[valid] = out[valid] @ R.T
-    return out
 
 def load_config(path: str):
     with open(path, encoding="utf-8") as stream:
@@ -295,19 +274,6 @@ def make_locally_disordered_cloud(
     out = out * mask.unsqueeze(-1)
     return out, target_col, alpha, noise_frac, index_sigma_frac
 
-def reverse_target_col(
-    target_col: torch.Tensor,  # [B, T]
-    mask: torch.Tensor,        # [B, T]
-) -> torch.Tensor:
-    out = torch.full_like(target_col, -100)
-
-    B, T = target_col.shape
-    for b in range(B):
-        valid_idx = mask[b].nonzero(as_tuple=True)[0]
-        if valid_idx.numel() == 0:
-            continue
-        out[b, valid_idx] = target_col[b, valid_idx.flip(0)]
-    return out
 
 def permutation_ce_and_acc_per_example(
     assignment_logits: torch.Tensor,  # [B, T, I]
@@ -454,151 +420,6 @@ def edge_ce_loss(edge_logits, target_col, mask, edge_src, edge_dst):
     edge_pos_frac = edge_gt.float().mean()
 
     return edge_ce, edge_pos_frac
-
-def add_masked_coord_jitter(
-    x: torch.Tensor,          # [B, L, 3]
-    mask: torch.Tensor,       # [B, L]
-    sigma_frac: float = 0.01,
-) -> torch.Tensor:
-    out = x.clone()
-    B = x.shape[0]
-
-    for b in range(B):
-        valid = mask[b]
-        pts = out[b, valid]
-        if pts.shape[0] == 0:
-            continue
-
-        centered = pts - pts.mean(dim=0, keepdim=True)
-        scale = centered.pow(2).sum(dim=-1).mean().sqrt().clamp_min(1e-6)
-
-        noise = torch.randn_like(pts) * (sigma_frac * scale)
-        out[b, valid] = pts + noise
-
-    out = out * mask.unsqueeze(-1)
-    return out
-
-@torch.no_grad()
-def make_uniformly_permuted_cloud(
-    pcs_gt: torch.Tensor,   # [B, L, 3]
-    mask: torch.Tensor,     # [B, L] bool
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Uniform random permutation of valid coordinates only.
-
-    Returns:
-      cloud_in    [B, L, 3]
-      target_col  [B, L], where target_col[b, t] = correct input column i
-    """
-    out = torch.zeros_like(pcs_gt)
-    B, L, _ = pcs_gt.shape
-
-    target_col = torch.full(
-        (B, L), -100, dtype=torch.long, device=pcs_gt.device
-    )
-
-    for b in range(B):
-        valid = mask[b]
-        valid_idx = valid.nonzero(as_tuple=True)[0]   # absolute padded indices
-        pts = pcs_gt[b, valid]                        # [n, 3]
-        n = pts.shape[0]
-
-        if n == 0:
-            continue
-        if n == 1:
-            out[b, valid] = pts
-            target_col[b, valid_idx] = valid_idx
-            continue
-
-        # Uniform random permutation over valid residues
-        perm = torch.randperm(n, device=pcs_gt.device)
-        pts_perm = pts[perm]
-
-        # inv_perm[t] = input-column i containing target-row t
-        inv_perm = torch.empty_like(perm)
-        inv_perm[perm] = torch.arange(n, device=perm.device)
-
-        out[b, valid] = pts_perm
-        target_col[b, valid_idx] = valid_idx[inv_perm].long()
-
-    out = out * mask.unsqueeze(-1)
-    return out, target_col
-
-@torch.no_grad()
-def make_uniformly_permuted_cloud_deterministic(
-    pcs_gt: torch.Tensor,   # [B, L, 3]
-    mask: torch.Tensor,     # [B, L] bool
-    idx: torch.Tensor,   # [B]
-    step: int = 0,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Same corruption family as training (uniform random permutation only),
-    but deterministic for repeatable validation.
-    """
-    out = torch.zeros_like(pcs_gt)
-    B, L, _ = pcs_gt.shape
-
-    target_col = torch.full(
-        (B, L), -100, dtype=torch.long, device=pcs_gt.device
-    )
-
-    for b in range(B):
-        valid = mask[b]
-        valid_idx = valid.nonzero(as_tuple=True)[0]
-        pts = pcs_gt[b, valid]
-        n = pts.shape[0]
-
-        if n == 0:
-            continue
-        if n == 1:
-            out[b, valid] = pts
-            target_col[b, valid_idx] = valid_idx
-            continue
-
-        g = torch.Generator(device=pcs_gt.device)
-        g.manual_seed(int(step * 100003 + int(idx[b].item()) * 9176 + 12345))
-
-        perm = torch.randperm(n, generator=g, device=pcs_gt.device)
-        pts_perm = pts[perm]
-
-        inv_perm = torch.empty_like(perm)
-        inv_perm[perm] = torch.arange(n, device=perm.device)
-
-        out[b, valid] = pts_perm
-        target_col[b, valid_idx] = valid_idx[inv_perm].long()
-
-    out = out * mask.unsqueeze(-1)
-    return out, target_col
-
-def compute_confidence_scores(assignment_logits: torch.Tensor,  # [B, T, I]
-                               mask: torch.Tensor,               # [B, I]
-                               target_mask: torch.Tensor | None = None,  # [B, T]
-                              ):
-    """
-    Returns normalized-entropy confidence per slot: [B, T]
-    1 = confident, 0 = uncertain
-    """
-    if target_mask is None:
-        target_mask = mask
-    B, T, I = assignment_logits.shape
-    very_neg = torch.finfo(assignment_logits.dtype).min
-    masked_logits = assignment_logits.masked_fill(~mask[:,None,:],very_neg)
-
-    p = torch.softmax(masked_logits,dim=-1) # [B, T, I]
-
-    entropy = -(p*torch.log(p.clamp_min(1e-8))).sum(dim=-1) # [B, T]
-
-    n_valid = mask.sum(dim=-1).clamp_min(1).to(assignment_logits.dtype)  # [B]
-    max_entropy = torch.log(n_valid)  # [B]
-
-    conf = torch.ones_like(entropy)
-
-    multi= (n_valid > 1)
-
-    conf[multi] = 1.0 - (entropy[multi]/max_entropy[multi].unsqueeze(-1))
-    conf = conf.masked_fill(~target_mask, 0.0)
-
-    return conf.clamp(0.0,1.0)
 
 def train(
     fabric,

@@ -49,7 +49,7 @@ trainer: &ref-trainer
   results_dir: ./results
 
 rmsd_modelconfig:
-  module: models.fielder_ordering_model
+  module: models.fiedler_ordering_model
   L_max: 500 
   learning_rate: 0.0001
   ectlossconfig: *ref-ectlossconfig
