@@ -7,7 +7,7 @@ import numpy as np
 import yaml
 
 from metrics.loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
-from tests.hamiltonian_path_test import run_hamiltonian_benchmark
+from benchmarks.hamiltonian_path import run_hamiltonian_benchmark
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
