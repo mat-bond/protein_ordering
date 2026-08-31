@@ -1,26 +1,9 @@
-import functools
 import importlib
-import json
-import timeit
 from types import SimpleNamespace
 from typing import Any
 
 import pydantic
 import yaml
-from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
-from torch import nn
-
-
-def timeit_decorator(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        timer = timeit.Timer(lambda: func(*args, **kwargs))
-        execution_time = timer.timeit(number=1)
-        print(f"Function {func.__name__!r} executed in {execution_time:.4f} seconds")
-        return func(*args, **kwargs)
-
-    return wrapper
-
 
 def load_module(config_dict: dict[Any, Any], classname: str) -> pydantic.BaseModel:
 
@@ -61,7 +44,6 @@ def load_model(config, model_path=None):
     if model_path:
         model = model_class.load_from_checkpoint(model_path)
     else:
-        config_dict = json.loads(json.dumps(config, default=lambda s: vars(s)))
         model = model_class(config)
     return model
 
