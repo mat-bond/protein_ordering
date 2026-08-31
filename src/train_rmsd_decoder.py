@@ -622,7 +622,7 @@ def train(
             W_DR=W_DR,
             W_ECE=W_ECE,
             W_DIST=W_DIST,
-            tau=val_tau
+            assignment_tau=val_tau
         )
         
         val_mean_rsmd = val_metrics["mean_rmsd"]
@@ -1111,6 +1111,9 @@ def main():
     train_dl_full = dm.train_dataloader() if callable(dm.train_dataloader) else dm.train_dataloader
     val_dl_full = dm.val_dataloader() if callable(dm.val_dataloader) else dm.val_dataloader
 
+    train_dl = train_dl_full
+    val_dl = val_dl_full
+
     if args.overfit128:
         train_ds = train_dl_full.dataset
         val_ds = val_dl_full.dataset
@@ -1202,9 +1205,9 @@ def main():
             max_index_sigma_frac=MAX_INDEX_SIGMA_FRAC,
             N_sigma=N_SIGMA,
             W_MSE=args.w_mse,
-            W_CE=args.w_ce,
+            W_CE=args.w_perm,
             W_DR=args.w_dr,
-            W_ECE=args.w_ece,
+            W_ECE=args.w_edge,
             W_DIST=args.w_dist,
             train_tau=args.train_tau,
             val_tau=val_tau
