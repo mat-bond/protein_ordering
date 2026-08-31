@@ -1,10 +1,7 @@
 import os
 import random
-from typing import Any
 import torch.nn.functional as F
-from numpy import sqrt
 import numpy as np
-import yaml
 
 from metrics.loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
 from benchmarks.hamiltonian_path import run_hamiltonian_benchmark
@@ -13,8 +10,6 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 import argparse
 
-import lightning
-import pydantic
 import torch
 from lightning import seed_everything
 from lightning.fabric import Fabric

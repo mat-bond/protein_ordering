@@ -9,23 +9,13 @@ Set/override rmsd_modelconfig.module to:
     models.fiedler_ordering_model
 """
 
-import math
 from typing import Optional, TypeAlias
 
 import pydantic
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch_cluster import radius_graph
 
-from e3nn import o3
-from .Equiformer.equiformer.nets.drop import EquivariantDropout
-from .Equiformer.equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
-from .Equiformer.equiformer.nets.graph_attention_transformer import (
-    get_norm_layer,
-    EdgeDegreeEmbeddingNetwork,
-    TransBlock,
-)
 from .modules.graph_encoder import PointCloudEquiformerEncoder
 from .modules.edge_layers import EdgeGraphLayer
 

@@ -1,8 +1,7 @@
 # datasets/protein_clouds.py
 from functools import partial
 from pathlib import Path
-from typing import Union, List, Tuple, Optional, Sequence
-import numpy as np
+from typing import Union, Tuple
 import pydantic
 import torch
 from torch.utils.data import DataLoader, Dataset

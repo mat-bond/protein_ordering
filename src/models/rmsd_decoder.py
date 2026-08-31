@@ -1,37 +1,13 @@
-import math
 from typing import Optional, TypeAlias
 
-import numpy as np
 import pydantic
 import torch
 from torch import nn
 
-from scipy.sparse import coo_matrix
 
 import torch
-from torch_cluster import radius_graph
 
-import e3nn
-from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
 
-import torch_geometric
-import math
-from .Equiformer.equiformer.nets.registry import register_model
-from .Equiformer.equiformer.nets.instance_norm import EquivariantInstanceNorm
-from .Equiformer.equiformer.nets.graph_norm import EquivariantGraphNorm
-from .Equiformer.equiformer.nets.layer_norm import EquivariantLayerNormV2
-from .Equiformer.equiformer.nets.fast_layer_norm import EquivariantLayerNormFast
-from .Equiformer.equiformer.nets.radial_func import RadialProfile
-from .Equiformer.equiformer.nets.fast_activation import Activation, Gate
-from .Equiformer.equiformer.nets.drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
-from .Equiformer.equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
-from .Equiformer.equiformer.nets.graph_attention_transformer import (
-    get_norm_layer,
-    EdgeDegreeEmbeddingNetwork,
-    TransBlock,
-)
 from .modules.graph_encoder import PointCloudEquiformerEncoder
 from .modules.edge_layers import EdgeGraphLayer
 

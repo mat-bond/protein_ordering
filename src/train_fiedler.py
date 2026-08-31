@@ -6,31 +6,18 @@ End-to-end training for:
 Expected model file:
     src/models/fiedler_ordering_model.py
 
-This script preserves the existing datamodule/Fabric/config/checkpoint conventions and
-the same training/validation point-cloud preparation used by the supplied setup.
-
-Typical run from repository root:
-    uv run python src/train_fiedler_e2e.py \
-        --config configs/proteins_sep.yaml \
-
-Quick debug:
-    uv run python src/train_fiedler_e2e.py \
-        --config configs/proteins_sep.yaml \
-        --overfit128 --max-train-batches 4 --max-val-batches 4
 """
 
 import argparse
 import math
 import os
 import random
-from typing import Any
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-import yaml
 from lightning import seed_everything
 from lightning.fabric import Fabric
 from torch.optim.lr_scheduler import CosineAnnealingLR
