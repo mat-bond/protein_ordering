@@ -19,7 +19,6 @@ from torch import nn
 from torch_cluster import radius_graph
 
 from e3nn import o3
-from .Equiformer.equiformer.nets.tensor_product_rescale import LinearRS
 from .Equiformer.equiformer.nets.drop import EquivariantDropout
 from .Equiformer.equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
 from .Equiformer.equiformer.nets.graph_attention_transformer import (

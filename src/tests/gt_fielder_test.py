@@ -41,7 +41,7 @@ from lightning.fabric import Fabric
 from tqdm import tqdm
 
 from loaders import load_datamodule, load_module
-from metrics.protein_loss import masked_kabsch_mse_bidirectional
+from metrics.loss import masked_kabsch_mse_bidirectional
 
 
 torch.set_float32_matmul_precision("medium")

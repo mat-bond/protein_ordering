@@ -43,7 +43,7 @@ from loaders import (
     load_model,
     load_config
 )
-from metrics.protein_loss import (
+from metrics.loss import (
     masked_kabsch_mse_bidirectional,
     drmsd_loss_bidirectional,
 )
@@ -58,7 +58,7 @@ from training.corruption import (
     make_uniformly_permuted_cloud_deterministic,
     reverse_target_col,
 )
-from metrics.protein_loss import compute_confidence_scores
+from metrics.loss import compute_confidence_scores
 
 torch.set_float32_matmul_precision("medium")
 

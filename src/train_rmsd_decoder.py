@@ -6,7 +6,7 @@ from numpy import sqrt
 import numpy as np
 import yaml
 
-from metrics.protein_loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
+from metrics.loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
 from tests.hamiltonian_path_test import run_hamiltonian_benchmark
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
@@ -40,7 +40,7 @@ from training.corruption import (
     make_uniformly_permuted_cloud_deterministic,
     reverse_target_col,
 )
-from metrics.protein_loss import compute_confidence_scores
+from metrics.loss import compute_confidence_scores
 
 def get_rng_state():
     state = {

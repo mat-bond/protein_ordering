@@ -10,7 +10,6 @@ from scipy.sparse import coo_matrix
 
 import torch
 from torch_cluster import radius_graph
-from torch_scatter import scatter
 
 import e3nn
 from e3nn import o3
@@ -25,8 +24,6 @@ from .Equiformer.equiformer.nets.graph_norm import EquivariantGraphNorm
 from .Equiformer.equiformer.nets.layer_norm import EquivariantLayerNormV2
 from .Equiformer.equiformer.nets.fast_layer_norm import EquivariantLayerNormFast
 from .Equiformer.equiformer.nets.radial_func import RadialProfile
-from .Equiformer.equiformer.nets.tensor_product_rescale import (TensorProductRescale, LinearRS,
-    FullyConnectedTensorProductRescale, irreps2gate, sort_irreps_even_first)
 from .Equiformer.equiformer.nets.fast_activation import Activation, Gate
 from .Equiformer.equiformer.nets.drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
 from .Equiformer.equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer

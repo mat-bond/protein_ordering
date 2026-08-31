@@ -1,6 +1,6 @@
 import torch
 from benchmarks.hamiltonian_path import hamiltonian_path
-from metrics.protein_loss import masked_kabsch_mse_bidirectional
+from metrics.loss import masked_kabsch_mse_bidirectional
 
 def permutation_accuracy(pred, true):
     # Backbone direction is ambiguous, so accept forward or reverse
