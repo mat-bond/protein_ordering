@@ -14,7 +14,6 @@ data:
   scale_by: 100
   uniform_scale: true
 
-
 trainer: &ref-trainer
   module: trainer
   seed: 1111
@@ -29,7 +28,7 @@ trainer: &ref-trainer
   results_dir: ./results
 
 
-rmsd_modelconfig:
+model:
   module: models.rmsd_decoder
   L_max: 500
   learning_rate: 0.0001

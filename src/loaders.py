@@ -173,3 +173,31 @@ def load_logger(config):
     """
     module = importlib.import_module(config.module)
     return module.load_logger(config)
+
+def load_config(path: str):
+    with open(path, encoding="utf-8") as stream:
+        cfg: dict[str, Any] = yaml.safe_load(stream)
+
+    dataconfig = load_module(
+        cfg["data"],
+        classname="DataConfig",
+    )
+    modelconfig = load_module(
+        cfg["model"],
+        classname="ModelConfig",
+    )
+    trainerconfig = load_module(
+        cfg["trainer"],
+        classname="TrainerConfig",
+    )
+    loggerconfig = load_module(
+        cfg["logger"],
+        classname="LogConfig",
+    )
+
+    return (
+        dataconfig,
+        modelconfig,
+        trainerconfig,
+        loggerconfig,
+    )

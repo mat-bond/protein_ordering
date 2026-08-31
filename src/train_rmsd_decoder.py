@@ -28,7 +28,7 @@ from loaders import (
     load_datamodule,
     load_logger,
     load_model,
-    load_module,
+    load_config
 )
 from protein_plot import plot_recon_3d
 from protein_inspection import write_to_pdb, plot_rmsd_histogram
@@ -145,24 +145,6 @@ def rotation_matrix_from_seed(seed: int, device=None, dtype=torch.float32):
 def fill_nans_for_ect(ca: torch.Tensor) -> torch.Tensor:
     # simplest: doesn’t crash ECT; mask will exclude invalid residues in losses
     return torch.nan_to_num(ca, nan=0.0, posinf=0.0, neginf=0.0)
-
-def load_config(path: str):
-    with open(path, encoding="utf-8") as stream:
-        config_dict: dict[str, Any] = yaml.safe_load(stream)
-
-    dataconfig = load_module(config_dict["data"], classname="DataConfig")
-    trainerconfig = load_module(config_dict["trainer"], classname="TrainerConfig")
-    loggerconfig = load_module(config_dict["logger"], classname="LogConfig")
-    rmsd_modelconfig = load_module(config_dict["rmsd_modelconfig"], classname="ModelConfig")
-    cloud_modelconfig = load_module(config_dict["cloud_modelconfig"], classname="ModelConfig")
-    
-    return (
-        dataconfig,
-        rmsd_modelconfig,
-        cloud_modelconfig,
-        trainerconfig,
-        loggerconfig,
-    )
 
 def corruption_fraction(
     step: int,

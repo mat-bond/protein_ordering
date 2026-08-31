@@ -45,7 +45,7 @@ from loaders import (
     load_datamodule,
     load_logger,
     load_model,
-    load_module,
+    load_config
 )
 from metrics.protein_loss import (
     masked_kabsch_mse_bidirectional,
@@ -77,35 +77,6 @@ def config_to_dict(config):
     if hasattr(config, "dict"):        # pydantic v1
         return config.dict()
     return vars(config)
-
-def load_config(path: str, model_module_override: str | None = None):
-    with open(path, encoding="utf-8") as stream:
-        config_dict: dict[str, Any] = yaml.safe_load(stream)
-
-    if model_module_override is not None:
-        config_dict["rmsd_modelconfig"] = dict(
-            config_dict["rmsd_modelconfig"]
-        )
-        config_dict["rmsd_modelconfig"]["module"] = model_module_override
-
-    dataconfig = load_module(config_dict["data"], classname="DataConfig")
-    trainerconfig = load_module(
-        config_dict["trainer"], classname="TrainerConfig"
-    )
-    loggerconfig = load_module(config_dict["logger"], classname="LogConfig")
-    rmsd_modelconfig = load_module(
-        config_dict["rmsd_modelconfig"], classname="ModelConfig"
-    )
-    cloud_modelconfig = load_module(
-        config_dict["cloud_modelconfig"], classname="ModelConfig"
-    )
-    return (
-        dataconfig,
-        rmsd_modelconfig,
-        cloud_modelconfig,
-        trainerconfig,
-        loggerconfig,
-    )
 
 
 def get_rng_state():

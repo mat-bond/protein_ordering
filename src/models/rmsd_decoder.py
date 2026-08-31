@@ -6,7 +6,6 @@ import pydantic
 import torch
 from torch import nn
 
-from layers.ect import EctConfig
 from scipy.sparse import coo_matrix
 
 import torch

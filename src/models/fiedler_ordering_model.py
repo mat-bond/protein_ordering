@@ -18,8 +18,6 @@ import torch.nn.functional as F
 from torch import nn
 from torch_cluster import radius_graph
 
-from layers.ect import EctConfig
-
 from e3nn import o3
 from .Equiformer.equiformer.nets.tensor_product_rescale import LinearRS
 from .Equiformer.equiformer.nets.drop import EquivariantDropout
