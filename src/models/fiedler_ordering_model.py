@@ -35,59 +35,47 @@ from .modules.edge_layers import EdgeGraphLayer
 Tensor: TypeAlias = torch.Tensor
 _RESCALE = True
 
-
 class ModelConfig(pydantic.BaseModel):
     module: str
     L_max: int
     learning_rate: float
-    ectlossconfig: EctConfig
-    ectconfig: EctConfig
 
+    # Shared encoder representation
     d_model: int = 512
-    nhead: int = 8
     num_encoder_layers: int = 8
-    num_decoder_layers: int = 3
-    dim_feedforward: int = 2048
     dropout: float = 0.1
-    use_spatial_features: bool = True
-    memory_token_dropout: float = 0.1
 
-    # tau is only a fallback; the training script passes a scheduled tau.
+    # Sinkhorn / spectral assignment
     tau: float = 0.2
     n_sink_iter: int = 50
 
-    # Coordinates in the existing code are in nm-like units: 3.8 A = 0.038.
+    # Equiformer graph
     edge_radius: float = 0.1
-    d_max: float = 0.1
-    bond_length: float = 0.038
-    bond_sigma: float = 0.01
-
     equiformer_num_heads: int = 4
     equiformer_max_neighbors: int = 64
     equiformer_avg_degree: float = 18.0
     equiformer_num_basis: int = 32
+
+    # Global-token mixer
     equiformer_num_global_tokens: int = 4
     equiformer_global_mixer_heads: int = 4
     equiformer_global_mixer_layers: int = 4
 
+    # Edge prediction head
     num_edgescorer_layers: int = 3
 
-    # Candidate graph for the learned backbone-edge head.  This is separate from
-    # the Equiformer message-passing graph.
-    candidate_radius: Optional[float] = None
+    # Backbone geometry
+    bond_length: float = 0.038
+    bond_sigma: float = 0.01
+
+    # Candidate graph
+    candidate_radius: float | None = None
     candidate_knn: int = 16
 
-    # Spectral layer.
+    # Spectral layer
     fiedler_eigh_dtype: str = "float64"
     spectral_background_eps: float = 1e-7
     spectral_rank_clamp_eps: float = 1e-6
-
-    # torch.linalg.eigh has a singular eigenvector derivative when lambda_2
-    # collides with lambda_1 or lambda_3.  The custom backward below uses the
-    # exact derivative when the Fiedler eigengap is healthy and returns zero
-    # spectral gradient for ill-defined near-degenerate examples.  EdgeCE still
-    # trains those examples, so they can become path-like and re-enter the
-    # end-to-end spectral objective later.
     spectral_backward_min_gap: float = 1e-6
 
 

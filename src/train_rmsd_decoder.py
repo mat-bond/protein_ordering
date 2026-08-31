@@ -1239,9 +1239,9 @@ def main():
             min_index_sigma=MIN_INDEX_SIGMA,
             max_index_sigma_frac=MAX_INDEX_SIGMA_FRAC,
             W_MSE=args.w_mse,
-            W_CE=args.w_ce,
+            W_CE=args.w_perm,
             W_DR=args.w_dr,
-            W_ECE=args.w_ece,
+            W_ECE=args.w_edge,
             inspect_best_only=inspect_best_only,
             pdb_inspect_amount=args.pdb_inspect_amount,
             assignment_tau=val_tau

@@ -47,32 +47,32 @@ class ModelConfig(pydantic.BaseModel):
     module: str
     L_max: int
     learning_rate: float
-    ectlossconfig: EctConfig
-    ectconfig: EctConfig
 
-    d_model: int = 512 
+    # Transformer / representation size
+    d_model: int = 512
     nhead: int = 8
     num_encoder_layers: int = 8
     num_decoder_layers: int = 3
     dim_feedforward: int = 2048
     dropout: float = 0.1
 
-    use_spatial_features: bool = True
-    memory_token_dropout: float = 0.1
+    # Sinkhorn assignment
     tau: float = 0.3
     n_sink_iter: int = 20
-    edge_radius: float = 0.1
-    d_max: float = 0.1
 
+    # Equiformer graph
+    edge_radius: float = 0.1
     equiformer_num_heads: int = 4
     equiformer_max_neighbors: int = 64
     equiformer_avg_degree: float = 18.0
     equiformer_num_basis: int = 32
 
-    equiformer_num_global_tokens: int = 4 
+    # Global-token mixer
+    equiformer_num_global_tokens: int = 4
     equiformer_global_mixer_heads: int = 4
-    equiformer_global_mixer_layers: int = 4 
+    equiformer_global_mixer_layers: int = 4
 
+    # Edge prediction head
     num_edgescorer_layers: int = 3
 
 
