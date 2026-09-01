@@ -1250,7 +1250,8 @@ def main():
             inspect_best_only=inspect_best_only,
             pdb_inspect_amount=args.pdb_inspect_amount,
             assignment_tau=eval_tau,
-            split_name=split_name
+            split_name=split_name,
+            label_smoothing=args.label_smoothing
         )
     else:
         run_benchmarks(valdataloader, no_progressbar, fabric, n_starts=500)
