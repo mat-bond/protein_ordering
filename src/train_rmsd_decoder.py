@@ -493,8 +493,12 @@ def train(
 
             diff = xyz_ord[:, 1:]-xyz_ord[:,:-1]
             dist = diff.norm(dim=-1)
-            pair_mask = mask[:, 1: ]& mask[:,:-1]
-            dist_loss = ((dist-0.038)**2)[pair_mask].mean()
+            pair_mask = mask[:, 1:] & mask[:, :-1]
+
+            if pair_mask.any():
+                dist_loss = ((dist - 0.038) ** 2)[pair_mask].mean()
+            else:
+                dist_loss = xyz_ord.new_zeros(())
 
             perm_ce, perm_acc, chance_ce = permutation_ce_and_acc_bidirectional(
                 assignment_logits=assignment_logits,
@@ -1009,7 +1013,7 @@ def main():
     parser.add_argument("--w-dr", type=float, default=0.0)
     parser.add_argument("--w-dist", type=float, default=0.0)
 
-    parser.add_argument("--label-smoothing", type=float, default=0.0)
+    parser.add_argument("--label-smoothing", type=float, default=0.05)
 
     parser.add_argument("--train-tau", type=float, default=0.1)
     parser.add_argument("--val-tau", type=float, default=None)
@@ -1203,7 +1207,8 @@ def main():
             W_ECE=args.w_edge,
             W_DIST=args.w_dist,
             train_tau=args.train_tau,
-            val_tau=val_tau
+            val_tau=val_tau,
+            label_smoothing=args.label_smoothing
         )
     elif not benchmark_only:
         eval_loader = (
