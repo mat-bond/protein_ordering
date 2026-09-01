@@ -600,8 +600,9 @@ def train(
             W_DR=W_DR,
             W_ECE=W_ECE,
             W_DIST=W_DIST,
-            assignment_tau=val_tau
-        )
+            assignment_tau=val_tau,
+            label_smoothing=label_smoothing
+            )
         
         val_mean_rsmd = val_metrics["mean_rmsd"]
 
