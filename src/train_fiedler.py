@@ -1038,6 +1038,9 @@ def parse_args():
         type=float
     )
 
+    p.add_argument("--seed", type=int, default=None)
+
+
     return p.parse_args()
 
 
