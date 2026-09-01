@@ -741,7 +741,10 @@ def validate(
 
         pair_mask = mask[:, 1:] & mask[:, :-1]
 
-        dist_loss = ((dist - 0.038) ** 2)[pair_mask].mean()
+        if pair_mask.any():
+            dist_loss = ((dist - 0.038) ** 2)[pair_mask].mean()
+        else:
+            dist_loss = xyz_ord.new_zeros(())
 
         loss = W_MSE*mse + W_DR*dr + W_CE * perm_ce + W_ECE*edge_ce + W_DIST*dist_loss
 
@@ -1072,7 +1075,7 @@ def main():
 
     logger.log_hyperparams({
         **vars(args),
-        "seed": trainerconfig.seed,
+        "seed": seed,
         "model_config": config_to_dict(modelconfig),
         "trainer_config": config_to_dict(trainerconfig),
         "data_config": config_to_dict(dataconfig),
@@ -1151,7 +1154,9 @@ def main():
         and resume_path is not None
         and not os.path.exists(resume_path)
     ):
-        raise FileNotFoundError(...)
+        raise FileNotFoundError(
+            f"Cannot load best model: checkpoint not found: {resume_path}"
+        )
 
 
     start_epoch, start_step, best_val = load_checkpoint_if_available(
@@ -1235,6 +1240,7 @@ def main():
             W_CE=args.w_perm,
             W_DR=args.w_dr,
             W_ECE=args.w_edge,
+            W_DIST=args.w_dist,
             inspect_best_only=inspect_best_only,
             pdb_inspect_amount=args.pdb_inspect_amount,
             assignment_tau=eval_tau,

@@ -998,7 +998,7 @@ def parse_args():
     p.add_argument("--w-mse", type=float, default=10.0)
     p.add_argument("--w-dr", type=float, default=0.0)
     p.add_argument("--w-dist", type=float, default=0.0)
-    p.add_argument("--label-smoothing", type=float, default=0.0)
+    p.add_argument("--label-smoothing", type=float, default=0.005)
 
     p.add_argument("--grad-clip", type=float, default=0.5)
     p.add_argument(
@@ -1083,7 +1083,7 @@ def main():
 
     logger.log_hyperparams({
         **vars(args),
-        "seed": trainerconfig.seed,
+        "seed": seed,
         "model_config": config_to_dict(modelconfig),
         "trainer_config": config_to_dict(trainerconfig),
         "data_config": config_to_dict(dataconfig),
@@ -1294,6 +1294,7 @@ def main():
             start_step=start_step,
             best_val_rmsd=best_val_rmsd,
             args=args,
+            label_smoothing=args.label_smoothing
         )
 
 
