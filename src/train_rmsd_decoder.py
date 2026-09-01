@@ -1146,6 +1146,14 @@ def main():
     elif resume:
         resume_path = f"{results_base_dir}/rmsd_last.ckpt"
 
+    if (
+        (args.inspect_best_only or args.test_best)
+        and resume_path is not None
+        and not os.path.exists(resume_path)
+    ):
+        raise FileNotFoundError(...)
+
+
     start_epoch, start_step, best_val = load_checkpoint_if_available(
         fabric=fabric,
         ckpt_path=resume_path,
