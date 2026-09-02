@@ -77,7 +77,6 @@ def load_checkpoint_if_available(
     optimizer,
     scheduler,
     restore_rng_state: bool = True,
-    fine_tune: bool = False
 ):
     start_epoch = 0
     step = 0
@@ -86,31 +85,22 @@ def load_checkpoint_if_available(
     if ckpt_path is None or not os.path.exists(ckpt_path):
         return start_epoch, step, best_val
 
-    if not fine_tune:
-        # restore model + optimizer in-place
-        remainder = fabric.load(
-            ckpt_path,
-            state={
-                "model": model,
-                "optimizer": optimizer,
-            },
-        )
-        # restore everything else manually from returned metadata
-        scheduler.load_state_dict(remainder["scheduler"])
-        start_epoch = int(remainder["epoch"]) + 1
-        step = int(remainder["step"])
-        best_val = float(remainder.get("best_val", float("inf")))
+    # restore model + optimizer in-place
+    remainder = fabric.load(
+        ckpt_path,
+        state={
+            "model": model,
+            "optimizer": optimizer,
+        },
+    )
+    # restore everything else manually from returned metadata
+    scheduler.load_state_dict(remainder["scheduler"])
+    start_epoch = int(remainder["epoch"]) + 1
+    step = int(remainder["step"])
+    best_val = float(remainder.get("best_val", float("inf")))
 
-    else: 
-        remainder = fabric.load(
-            ckpt_path,
-            state={
-                "model": model,
-            },
-        )
-
-    if restore_rng_state and "rng_state" in remainder and not fine_tune:
-            set_rng_state(remainder["rng_state"])
+    if restore_rng_state and "rng_state" in remainder:
+        set_rng_state(remainder["rng_state"])
 
     return start_epoch, step, best_val
 
@@ -1043,10 +1033,17 @@ def main():
         type=int
     )
     parser.add_argument(
-        "--fine_tune",
-        default=False,
-        action="store_true",
-        help=".",
+        "--finetune_from",
+        type=str,
+        default=None,
+        help="Checkpoint whose model weights are used to start a fresh fine-tuning stage.",
+    )
+
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=None,
+        help="Override config learning rate, useful for fine-tuning.",
     )
     parser.add_argument(
         "--benchmark_only",
@@ -1076,12 +1073,9 @@ def main():
     resume_best: bool = args.resume_best
     no_progressbar = args.no_progressbar
     inspect_best_only: bool =args.inspect_best_only
-    fine_tune: bool = args.fine_tune
+    finetune_from: str = args.finetune_from
     benchmark_only: bool = args.benchmark_only
     test_best: bool = args.test_best
-
-    if fine_tune and not resume_best:
-        resume = True
         
     if inspect_best_only or test_best: 
         resume = False
@@ -1099,6 +1093,10 @@ def main():
         results_base_dir += "_dev"
 
     results_base_dir += f"/{loggerconfig.results_dir}_gt_only_curriculum"
+
+    if finetune_from is not None:
+        results_base_dir += "_finetune"
+
     os.makedirs(results_base_dir, exist_ok=True)
 
 
@@ -1174,10 +1172,12 @@ def main():
     rmsd_model = load_model(modelconfig)
     
     print(summary(rmsd_model))
-    
+
+    lr = args.lr if args.lr is not None else modelconfig.learning_rate
+
     optimizer = torch.optim.AdamW(
         rmsd_model.parameters(),
-        lr=modelconfig.learning_rate,
+        lr=lr,
         weight_decay=0.01,
     )
 
@@ -1207,15 +1207,35 @@ def main():
             f"Cannot load best model: checkpoint not found: {resume_path}"
         )
 
+    if (
+        args.inspect_best_only
+        or args.test_best
+        or args.finetune_from is None
+    ):
+        # Normal fresh training / resume / inspection / testing.
+        start_epoch, start_step, best_val = load_checkpoint_if_available(
+            fabric=fabric,
+            ckpt_path=resume_path,
+            model=rmsd_model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+        )
 
-    start_epoch, start_step, best_val = load_checkpoint_if_available(
-        fabric=fabric,
-        ckpt_path=resume_path,
-        model=rmsd_model,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        fine_tune=fine_tune
-    )
+    else:
+        # Start a NEW fine-tuning stage from model weights only.
+        if not os.path.exists(args.finetune_from):
+            raise FileNotFoundError(
+                f"Fine-tuning checkpoint not found: {args.finetune_from}"
+            )
+
+        fabric.load(
+            args.finetune_from,
+            state={"model": rmsd_model},
+        )
+
+        start_epoch = 0
+        start_step = 0
+        best_val = float("inf")
 
     val_tau = (
         args.val_tau
