@@ -30,7 +30,7 @@ from models.Equiformer.equiformer.optim_factory import create_optimizer
 from models.Equiformer.equiformer.engine import train_one_epoch, evaluate, compute_stats
 
 # distributed training
-import utils
+import pipeline.spike_design.utils as utils
 
 ModelEma = ModelEmaV2
 

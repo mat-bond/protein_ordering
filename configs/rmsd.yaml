@@ -21,7 +21,7 @@ trainer:
   log_every_n_steps: 1
   accelerator: auto
   precision: null
-  checkpoint_interval: 20
+  checkpoint_interval: 5
 
   save_dir: trainer/rmsd
   model_name: model.ckpt
@@ -38,4 +38,4 @@ logger:
   module: loggers.wandblogger
   project: PointClouds
   entity: mat-bondarev-epfl
-  results_dir: rmsd_train
+  results_dir: rmsd_train_perm

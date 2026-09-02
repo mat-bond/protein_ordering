@@ -1,31 +1,22 @@
-from typing import Optional
 
 import torch
-from torch import nn
-
 from e3nn import o3
-from e3nn.util.jit import compile_mode
-from e3nn.nn.models.v2106.gate_points_message_passing import tp_path_exists
-
+from torch import nn
 from torch_cluster import radius_graph
-import torch_geometric
-import math
-from ..Equiformer.equiformer.nets.registry import register_model
-from ..Equiformer.equiformer.nets.instance_norm import EquivariantInstanceNorm
-from ..Equiformer.equiformer.nets.graph_norm import EquivariantGraphNorm
-from ..Equiformer.equiformer.nets.layer_norm import EquivariantLayerNormV2
-from ..Equiformer.equiformer.nets.fast_layer_norm import EquivariantLayerNormFast
-from ..Equiformer.equiformer.nets.radial_func import RadialProfile
-from ..Equiformer.equiformer.nets.tensor_product_rescale import (TensorProductRescale, LinearRS,
-    FullyConnectedTensorProductRescale, irreps2gate, sort_irreps_even_first)
-from ..Equiformer.equiformer.nets.fast_activation import Activation, Gate
-from ..Equiformer.equiformer.nets.drop import EquivariantDropout, EquivariantScalarsDropout, GraphDropPath
+
+from ..Equiformer.equiformer.nets.drop import (
+    EquivariantDropout,
+)
 from ..Equiformer.equiformer.nets.gaussian_rbf import GaussianRadialBasisLayer
 from ..Equiformer.equiformer.nets.graph_attention_transformer import (
-    get_norm_layer,
     EdgeDegreeEmbeddingNetwork,
     TransBlock,
+    get_norm_layer,
 )
+from ..Equiformer.equiformer.nets.tensor_product_rescale import (
+    LinearRS,
+)
+
 _RESCALE = True
 _USE_BIAS = True
 class PointCloudEquiformerEncoder(nn.Module):
@@ -53,10 +44,10 @@ class PointCloudEquiformerEncoder(nn.Module):
             num_heads: int = 4,
             lmax: int = 2,
             avg_degree: float = 16.0,
-            irreps_node_embedding: Optional[str] = None,
-            irreps_head: Optional[str] = None,
-            irreps_mlp_mid: Optional[str] = None,
-            irreps_pre_attn: Optional[str] = None,
+            irreps_node_embedding: str | None = None,
+            irreps_head: str | None = None,
+            irreps_mlp_mid: str | None = None,
+            irreps_pre_attn: str | None = None,
             nonlinear_message: bool = True,
             rescale_degree: bool = False,
             norm_layer: str = "layer",

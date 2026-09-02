@@ -1,6 +1,7 @@
 
 import torch
 
+
 def random_rotation_matrix(device=None, dtype=torch.float32):
     u1 = torch.rand((), device=device, dtype=dtype)
     u2 = torch.rand((), device=device, dtype=dtype)

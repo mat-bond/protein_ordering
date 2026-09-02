@@ -1,14 +1,16 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 import numpy as np
 import torch
+
 from datasets.protein_clouds import DataConfig, _load_split_pt
+
 
 def _graph_degree_stats_for_chain(
     xv: torch.Tensor,              # [Nv, 3], already valid-only
     cutoff: float,
-    max_num_neighbors: Optional[int] = None,
+    max_num_neighbors: int | None = None,
 ) -> dict:
     """
     Computes raw radius-graph degree stats for one chain using torch.cdist.
@@ -53,8 +55,8 @@ def test_coordinate_scaling(
     cfg: DataConfig,
     split: str = "train",
     n_show: int = 5,
-    cutoff: Optional[float] = None,
-    max_num_neighbors: Optional[int] = None,
+    cutoff: float | None = None,
+    max_num_neighbors: int | None = None,
 ):
     """
     Checks centering/scaling for one split and, if cutoff is provided,
@@ -244,7 +246,7 @@ def sweep_radius_graph_cutoffs(
     cfg: DataConfig,
     split: str = "train",
     cutoffs: Sequence[float] = (0.08, 0.10, 0.12),
-    max_num_neighbors: Optional[int] = 64,
+    max_num_neighbors: int | None = 64,
 ):
     """
     Convenience function: run graph diagnostics for several cutoffs on one split.

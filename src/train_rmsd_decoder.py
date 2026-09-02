@@ -1,10 +1,13 @@
 import os
 import random
-import torch.nn.functional as F
-import numpy as np
+import csv
+import json
 
-from metrics.loss import masked_kabsch_mse_bidirectional, drmsd_loss_bidirectional
+import numpy as np
+import torch.nn.functional as F
+
 from benchmarks.hamiltonian_path import run_hamiltonian_benchmark
+from metrics.loss import drmsd_loss_bidirectional, masked_kabsch_mse_bidirectional
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
@@ -13,30 +16,27 @@ import argparse
 import torch
 from lightning import seed_everything
 from lightning.fabric import Fabric
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchinfo import summary
 from tqdm import tqdm
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from loaders import (
-    load_datamodule,
-    load_logger,
-    load_model,
-    load_config
-)
+from loaders import load_config, load_datamodule, load_logger, load_model
 from plotting import plot_recon_3d
-from protein_inspection import write_to_pdb, plot_rmsd_histogram
+from protein_inspection import plot_rmsd_histogram, write_to_pdb
+
 torch.set_float32_matmul_precision("medium")
 
+from loaders import config_to_dict
+from metrics.loss import compute_confidence_scores
 from training.corruption import (
-    random_rotation_matrix,
-    apply_rotation_masked,
     add_masked_coord_jitter,
+    apply_rotation_masked,
     make_uniformly_permuted_cloud,
     make_uniformly_permuted_cloud_deterministic,
+    random_rotation_matrix,
     reverse_target_col,
 )
-from metrics.loss import compute_confidence_scores
-from loaders import config_to_dict
+
 
 def get_rng_state():
     state = {
@@ -699,10 +699,8 @@ def validate(
     total_edge_items = 0
     total_dist_loss = 0.0
     all_rmsd = []
+    sample_ids_all = []
     last_batch = None
-    alpha_corrupt = 0.0
-    noise_frac = 0.0
-    index_sigma_frac = 0.0
 
     for pcs_gt, lengths, _, _, valid_mask, pad_mask, idx in tqdm(
         dataloader, disable=no_progressbar
@@ -740,7 +738,10 @@ def validate(
 
         good = count > 0 
         rmsd_values = 100.0 * torch.sqrt(per_example_mse[good].clamp_min(1e-12))
-        all_rmsd.extend(rmsd_values.detach().cpu().tolist())    
+        all_rmsd.extend(rmsd_values.detach().cpu().tolist())
+        sample_ids_all.extend(
+            idx[good].detach().cpu().tolist()
+        )    
         diff = xyz_ord[:, 1:] - xyz_ord[:, :-1]
         dist = diff.norm(dim=-1)
 
@@ -826,6 +827,39 @@ def validate(
                 align_to_ref=True,
             )
     elif last_batch is not None:
+        if all_rmsd:
+            rmsd_np = np.asarray(all_rmsd)
+            median_rmsd = float(np.median(rmsd_np))
+            p90_rmsd = float(np.percentile(rmsd_np, 90))
+            p95_rmsd = float(np.percentile(rmsd_np, 95))
+            frac_lt_01 = float(np.mean(rmsd_np < 0.1))
+            frac_gt_10 = float(np.mean(rmsd_np > 10.0))
+        else:
+            mean_rmsd = float("inf")
+            median_rmsd = float("inf")
+            p90_rmsd = float("inf")
+            p95_rmsd = float("inf")
+            frac_lt_01 = 0.0
+            frac_gt_10 = 0.0
+
+        metrics = {
+            "mean_rmsd": mean_rmsd,
+            "median_rmsd": median_rmsd,
+            "p90_rmsd": p90_rmsd,
+            "p95_rmsd": p95_rmsd,
+            "frac_rmsd_lt_0.1A": frac_lt_01,
+            "frac_rmsd_gt_10A": frac_gt_10,
+            "mean_loss": float(mean_loss),
+            "mse": float(mean_mse),
+            "dr": float(mean_dr),
+            "perm_ce": float(mean_perm_ce),
+            "perm_acc": float(mean_perm_acc),
+            "chance_gap": float(mean_chance),
+            "edge_ce": float(mean_ece),
+            "dist_loss": float(mean_dist_loss),
+            "assignment_tau": float(assignment_tau),
+        }
+        
         pcs_recon_b, pcs_gt_b, cloud_in_b, mask_b = last_batch
         confidence=100*compute_confidence_scores(assignment_logits=assignment_logits,mask=mask)
         write_to_pdb(directory=f"{results_base_dir}/pdb_files",
@@ -843,6 +877,26 @@ def validate(
             title=f"{split_name} per-protein RMSD distribution",
         )
         
+        with open(
+            f"{results_base_dir}/{split_name}_per_protein.csv",
+            "w",
+            newline="",
+        ) as f:
+            writer = csv.writer(f)
+            writer.writerow(["sample_id", "rmsd_A"])
+
+            for sample_id, rmsd_A in zip(
+                sample_ids_all,
+                all_rmsd,
+            ):
+                writer.writerow([sample_id, rmsd_A])
+
+
+        with open(
+            f"{results_base_dir}/{split_name}_metrics.json",
+            "w",
+        ) as f:
+            json.dump(metrics, f, indent=2)
 
     return {
         "mean_rmsd": mean_rmsd,
@@ -900,8 +954,6 @@ def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
     bond_perm_score = np.mean(bond_perm_scores_tot)
     short_edge_score = np.mean(short_edge_scores_tot)
     bond_edge_score = np.mean(bond_edge_scores_tot)
-    short_rmsd_mean = np.mean(short_rmsd_tot)
-    bond_rmsd_mean = np.mean(bond_rmsd)
 
     print(
             "Nearest-neighbor permutation accuracy:",
@@ -924,7 +976,6 @@ def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
     )
     print("Nearest-neighbor mean RMSD (Å):", np.mean(short_rmsd_tot))
     print("3.8A mean RMSD (Å):", np.mean(bond_rmsd_tot))
-    return 
             
 
 def main():
@@ -949,12 +1000,6 @@ def main():
         dest="config_path",
         default="configs/rmsd.yaml",
         type=str,
-    )
-    parser.add_argument(
-        "--compile",
-        default=False,
-        action="store_true",
-        help="Compile the model (placeholder; currently unused).",
     )
     parser.add_argument(
         "--dev",
@@ -1025,8 +1070,7 @@ def main():
     parser.add_argument("--seed", type=int, default=None)
 
     args = parser.parse_args()
-
-    compile: bool = args.compile
+    
     dev: bool = args.dev
     resume: bool = args.resume
     resume_best: bool = args.resume_best
@@ -1179,7 +1223,7 @@ def main():
         else args.train_tau
     )
 
-    if not inspect_best_only and not benchmark_only:
+    if not (inspect_best_only or test_best) and not benchmark_only:
         train(
             fabric=fabric,
             dataloader=dataloader,

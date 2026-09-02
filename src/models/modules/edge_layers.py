@@ -1,6 +1,7 @@
 
-from torch import nn
 import torch
+from torch import nn
+
 
 class EdgeGraphLayer(nn.Module):
     def __init__(self, node_dim, edge_dim, d_model, dropout = 0.1):

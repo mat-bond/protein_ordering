@@ -25,28 +25,28 @@ from torchinfo import summary
 from tqdm import tqdm
 
 from loaders import (
+    config_to_dict,
+    load_config,
     load_datamodule,
     load_logger,
     load_model,
-    load_config
 )
 from metrics.loss import (
-    masked_kabsch_mse_bidirectional,
+    compute_confidence_scores,
     drmsd_loss_bidirectional,
+    masked_kabsch_mse_bidirectional,
 )
 from plotting import plot_recon_3d
-from protein_inspection import write_to_pdb, plot_rmsd_histogram
-
+from protein_inspection import plot_rmsd_histogram, write_to_pdb
 from training.corruption import (
-    random_rotation_matrix,
-    apply_rotation_masked,
     add_masked_coord_jitter,
+    apply_rotation_masked,
     make_uniformly_permuted_cloud,
     make_uniformly_permuted_cloud_deterministic,
+    random_rotation_matrix,
     reverse_target_col,
 )
-from metrics.loss import compute_confidence_scores
-from loaders import config_to_dict
+
 torch.set_float32_matmul_precision("medium")
 
 # -----------------------------------------------------------------------------
@@ -1174,7 +1174,7 @@ def main():
     )
     if args.finetune_from is not None:
         results_base_dir += (
-                f"_finetune"
+                "_finetune"
             )
     os.makedirs(results_base_dir, exist_ok=True)
 
@@ -1186,7 +1186,7 @@ def main():
 
     if args.test_best:
         results_base_dir += (
-                f"_test"
+                "_test"
             )
     os.makedirs(results_base_dir, exist_ok=True)
 

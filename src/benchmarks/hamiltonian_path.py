@@ -2,6 +2,7 @@ import torch
 
 from metrics.loss import masked_kabsch_mse_bidirectional
 
+
 def greedy_path(cost,start):
     """
     cost: [N, N] symmetric cost matrix

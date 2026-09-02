@@ -1,11 +1,11 @@
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 import pydantic
 import torch
 from torch import nn
 
-from .modules.graph_encoder import PointCloudEquiformerEncoder
 from .modules.edge_layers import EdgeGraphLayer
+from .modules.graph_encoder import PointCloudEquiformerEncoder
 
 Tensor: TypeAlias = torch.Tensor
 ### Gumbell-Softmax operation taken from https://arxiv.org/pdf/1802.08665 and https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/sampling/permutations.html
@@ -255,9 +255,9 @@ class Model(nn.Module):
     def forward(
         self,
         xyz_cloud: Tensor,                    # [B, L, 3]
-        point_mask: Optional[Tensor] = None, # [B, L], True = valid point 
-        padding_mask: Optional[Tensor] = None, # [B, L], True = not padding
-        assignment_tau: Optional[float] = None,
+        point_mask: Tensor | None = None, # [B, L], True = valid point 
+        padding_mask: Tensor | None = None, # [B, L], True = not padding
+        assignment_tau: float | None = None,
     ):
         tau = self.tau if assignment_tau is None else float(assignment_tau)
         B, L, _ = xyz_cloud.shape

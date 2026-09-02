@@ -1,5 +1,7 @@
 import torch
+
 from benchmarks.hamiltonian_path import hamiltonian_path
+
 
 def correct_up_to_reverse(pred, true):
     return (

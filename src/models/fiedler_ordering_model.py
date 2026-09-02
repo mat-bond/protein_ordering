@@ -7,15 +7,15 @@ Expected placement:
 
 """
 
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 import pydantic
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .modules.graph_encoder import PointCloudEquiformerEncoder
 from .modules.edge_layers import EdgeGraphLayer
+from .modules.graph_encoder import PointCloudEquiformerEncoder
 
 Tensor: TypeAlias = torch.Tensor
 _RESCALE = True
@@ -604,9 +604,9 @@ class Model(nn.Module):
     def forward(
         self,
         xyz_cloud: Tensor,
-        point_mask: Optional[Tensor] = None,
-        padding_mask: Optional[Tensor] = None,
-        spectral_tau: Optional[float] = None,
+        point_mask: Tensor | None = None,
+        padding_mask: Tensor | None = None,
+        spectral_tau: float | None = None,
         compute_spectral: bool = True,
     ):
         B, L, _ = xyz_cloud.shape

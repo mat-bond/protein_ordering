@@ -5,6 +5,7 @@ from typing import Any
 import pydantic
 import yaml
 
+
 def load_module(config_dict: dict[Any, Any], classname: str) -> pydantic.BaseModel:
 
     module_name = config_dict.get("module", None)

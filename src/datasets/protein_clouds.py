@@ -1,14 +1,14 @@
 # datasets/protein_clouds.py
 from functools import partial
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Tuple, Union
+
 import pydantic
 import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-
-def validate_dir(path: Union[str, Path], create_if_absent=True, parent=False) -> Path:
+def validate_dir(path: str | Path, create_if_absent=True, parent=False) -> Path:
     p = Path(path)
     if parent:
         p = p.parent
@@ -28,7 +28,7 @@ def masked_center_and_scale(
     scale_cloud: bool = True,
     uniform_scale: bool = True,
     uniform_scaling_factor: float = 1,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Returns:
       ca_norm:  [L,3] (NaNs preserved where invalid)

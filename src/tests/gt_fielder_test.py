@@ -26,7 +26,6 @@ For a quick smoke test:
 """
 
 import argparse
-import math
 import os
 import random
 from typing import Any
@@ -42,7 +41,6 @@ from tqdm import tqdm
 
 from loaders import load_datamodule, load_module
 from metrics.loss import masked_kabsch_mse_bidirectional
-
 
 torch.set_float32_matmul_precision("medium")
 
