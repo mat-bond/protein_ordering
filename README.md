@@ -516,21 +516,24 @@ uv run python src/train_rmsd_decoder.py --config configs/rmsd.yaml \
 
 ```text
 protein_ordering/
-├── configs/          # experiment configurations
-├── results/          # final metrics, per-protein results, and figures
+├── configs/              # experiment configurations
+├── licenses/             # preserved third-party software licenses
+├── results/              # final metrics, per-protein outputs, and figures
 ├── src/
-│   ├── benchmarks/   # deterministic geometric baselines
-│   ├── datasets/     # protein point-cloud datasets
-│   ├── metrics/      # ordering and structural losses
-│   ├── models/       # Fiedler and direct permutation models
-│   ├── training/     # training and corruption utilities
-│   ├── result_analysis/  # scripts used to generate final analyses
-│   ├── tests/        # dataset and baseline tests
+│   ├── benchmarks/       # deterministic geometric baselines
+│   ├── datasets/         # protein point-cloud datasets
+│   ├── metrics/          # ordering and structural losses
+│   ├── models/           # Fiedler and direct permutation models
+│   ├── training/         # corruption and training utilities
+│   ├── result_analysis/  # scripts used for final per-protein analyses
+│   ├── tests/            # dataset and baseline tests
 │   ├── train_fiedler.py
 │   └── train_rmsd_decoder.py
+├── LICENSE               # BSD 3-Clause license for original project code
+├── THIRD_PARTY_NOTICES.md
 ├── pyproject.toml
 ├── uv.lock
-└── README.md               
+└── README.md            
 ```
 
 ---
