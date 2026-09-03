@@ -16,7 +16,6 @@ results/
 *.ckpt
 *.npy
 *.svg 
-*.pt
 *.out
 *.zip 
 *.ps1
