@@ -517,7 +517,6 @@ uv run python src/train_rmsd_decoder.py --config configs/rmsd.yaml \
 ```text
 protein_ordering/
 ├── configs/          # experiment configurations
-├── data/             # processed CATH train/validation/test splits
 ├── results/          # final metrics, per-protein results, and figures
 ├── src/
 │   ├── benchmarks/   # deterministic geometric baselines
