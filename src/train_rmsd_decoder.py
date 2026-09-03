@@ -894,13 +894,20 @@ def validate(
         "perm_acc": mean_perm_acc,
     }
 
-def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
+def run_benchmarks(
+    dataloader,
+    no_progressbar,
+    fabric,
+    n_starts,
+    results_base_dir,
+):
     short_perm_scores_tot = []
     bond_perm_scores_tot = []
     short_edge_scores_tot = []
     bond_edge_scores_tot = []
     short_rmsd_tot = []
     bond_rmsd_tot = []
+    sample_ids_tot = []
 
     for pcs_gt, lengths, _, _, valid_mask, pad_mask, idx in tqdm(
         dataloader, disable=no_progressbar
@@ -910,15 +917,16 @@ def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
         valid_mask = valid_mask.to(fabric.device)
         pad_mask = pad_mask.to(fabric.device)
         idx = idx.to(fabric.device)
-        
+
         mask = (pad_mask & valid_mask).bool()
 
         cloud_in, target_col = make_uniformly_permuted_cloud_deterministic(
-        pcs_gt=pcs_gt,
-        mask=mask,
-        idx=idx,
-        step=0
+            pcs_gt=pcs_gt,
+            mask=mask,
+            idx=idx,
+            step=0,
         )
+
         (
             short_perm_scores,
             bond_perm_scores,
@@ -933,6 +941,18 @@ def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
             mask=mask,
             n_starts=n_starts,
         )
+
+        # With this dataset every protein should have a valid RMSD.
+        # Fail loudly rather than silently misalign sample IDs.
+        batch_ids = idx.detach().cpu().tolist()
+
+        assert len(batch_ids) == len(short_rmsd)
+        assert len(batch_ids) == len(bond_rmsd)
+        assert len(batch_ids) == len(short_perm_scores)
+        assert len(batch_ids) == len(bond_perm_scores)
+
+        sample_ids_tot.extend(batch_ids)
+
         short_perm_scores_tot.extend(short_perm_scores)
         bond_perm_scores_tot.extend(bond_perm_scores)
         short_edge_scores_tot.extend(short_edge_scores)
@@ -940,32 +960,105 @@ def run_benchmarks(dataloader, no_progressbar, fabric, n_starts):
         short_rmsd_tot.extend(short_rmsd)
         bond_rmsd_tot.extend(bond_rmsd)
 
-    short_perm_score = np.mean(short_perm_scores_tot)
-    bond_perm_score = np.mean(bond_perm_scores_tot)
-    short_edge_score = np.mean(short_edge_scores_tot)
-    bond_edge_score = np.mean(bond_edge_scores_tot)
+    # ------------------------------------------------------------------
+    # Summary metrics
+    # ------------------------------------------------------------------
 
-    print(
-            "Nearest-neighbor permutation accuracy:",
-            np.mean(short_perm_score)
-        )
-    
-    print(
-        "3.8A permutation accuracy:",
-        np.mean(bond_perm_score)
+    short_rmsd_np = np.asarray(short_rmsd_tot)
+    bond_rmsd_np = np.asarray(bond_rmsd_tot)
+
+    metrics = {
+        "nearest_neighbor": {
+            "mean_rmsd_A": float(np.mean(short_rmsd_np)),
+            "median_rmsd_A": float(np.median(short_rmsd_np)),
+            "p90_rmsd_A": float(np.percentile(short_rmsd_np, 90)),
+            "p95_rmsd_A": float(np.percentile(short_rmsd_np, 95)),
+            "frac_rmsd_lt_0.1A": float(np.mean(short_rmsd_np < 0.1)),
+            "frac_rmsd_gt_10A": float(np.mean(short_rmsd_np > 10.0)),
+            "perm_acc": float(np.mean(short_perm_scores_tot)),
+            "edge_acc": float(np.mean(short_edge_scores_tot)),
+        },
+        "3.8A": {
+            "mean_rmsd_A": float(np.mean(bond_rmsd_np)),
+            "median_rmsd_A": float(np.median(bond_rmsd_np)),
+            "p90_rmsd_A": float(np.percentile(bond_rmsd_np, 90)),
+            "p95_rmsd_A": float(np.percentile(bond_rmsd_np, 95)),
+            "frac_rmsd_lt_0.1A": float(np.mean(bond_rmsd_np < 0.1)),
+            "frac_rmsd_gt_10A": float(np.mean(bond_rmsd_np > 10.0)),
+            "perm_acc": float(np.mean(bond_perm_scores_tot)),
+            "edge_acc": float(np.mean(bond_edge_scores_tot)),
+        },
+    }
+
+    print("Benchmark metrics:")
+    for method, vals in metrics.items():
+        print(method)
+        for name, value in vals.items():
+            print(f"  {name}: {value}")
+
+    # ------------------------------------------------------------------
+    # Per-protein CSV
+    # ------------------------------------------------------------------
+
+    csv_path = f"{results_base_dir}/benchmark_per_protein.csv"
+
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+
+        writer.writerow([
+            "sample_id",
+            "nearest_rmsd_A",
+            "3.8A_rmsd_A",
+            "nearest_perm_acc",
+            "3.8A_perm_acc",
+            "nearest_edge_acc",
+            "3.8A_edge_acc",
+        ])
+
+        for values in zip(
+            sample_ids_tot,
+            short_rmsd_tot,
+            bond_rmsd_tot,
+            short_perm_scores_tot,
+            bond_perm_scores_tot,
+            short_edge_scores_tot,
+            bond_edge_scores_tot,
+        ):
+            writer.writerow(values)
+
+    # ------------------------------------------------------------------
+    # JSON summary
+    # ------------------------------------------------------------------
+
+    with open(
+        f"{results_base_dir}/benchmark_metrics.json",
+        "w",
+    ) as f:
+        json.dump(metrics, f, indent=2)
+
+    # ------------------------------------------------------------------
+    # RMSD histograms
+    # ------------------------------------------------------------------
+
+    plot_rmsd_histogram(
+        short_rmsd_tot,
+        filename=f"{results_base_dir}/nearest_neighbor_rmsd_histogram.png",
+        bins=50,
+        title="Nearest-neighbor per-protein RMSD distribution",
     )
 
-    print(
-        "Nearest-neighbor edge accuracy:",
-        np.mean(short_edge_score)
+    plot_rmsd_histogram(
+        bond_rmsd_tot,
+        filename=f"{results_base_dir}/3.8A_rmsd_histogram.png",
+        bins=50,
+        title="3.8 Å Hamiltonian per-protein RMSD distribution",
     )
 
-    print(
-        "3.8A edge accuracy:",
-        np.mean(bond_edge_score)
-    )
-    print("Nearest-neighbor mean RMSD (Å):", np.mean(short_rmsd_tot))
-    print("3.8A mean RMSD (Å):", np.mean(bond_rmsd_tot))
+    print("Saved:")
+    print(f"  {csv_path}")
+    print(f"  {results_base_dir}/benchmark_metrics.json")
+    print(f"  {results_base_dir}/nearest_neighbor_rmsd_histogram.png")
+    print(f"  {results_base_dir}/3.8A_rmsd_histogram.png")
             
 
 def main():
@@ -1318,7 +1411,7 @@ def main():
             label_smoothing=args.label_smoothing
         )
     else:
-        run_benchmarks(valdataloader, no_progressbar, fabric, n_starts=500)
+        run_benchmarks(testdataloader, no_progressbar, fabric, n_starts=500, reresults_base_dir=results_base_dir)
 
 
 if __name__ == "__main__":
