@@ -1,0 +1,8 @@
+{
+  "n_proteins": 681,
+  "failure_threshold_A": 10.0,
+  "edgece_fails_mse_fixes": 55,
+  "both_fiedler_variants_fail": 95,
+  "3.8A_fails_fiedler_mse_succeeds": 48,
+  "fiedler_mse_fails_3.8A_succeeds": 36
+}
