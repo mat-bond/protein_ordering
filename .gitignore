@@ -10,7 +10,7 @@ viz**
 diffusers**
 ddpm-butterflies-128/
 .jukit/
-results/
+results_unt/
 
 
 *.ckpt

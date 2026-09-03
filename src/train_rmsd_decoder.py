@@ -1411,7 +1411,7 @@ def main():
             label_smoothing=args.label_smoothing
         )
     else:
-        run_benchmarks(testdataloader, no_progressbar, fabric, n_starts=500, reresults_base_dir=results_base_dir)
+        run_benchmarks(testdataloader, no_progressbar, fabric, n_starts=500, results_base_dir=results_base_dir)
 
 
 if __name__ == "__main__":

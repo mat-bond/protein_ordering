@@ -122,6 +122,8 @@ def plot_ecdf(
 
     if log_x:
         ax.set_xscale("log")
+    else:
+        ax.set_xlim(0, 35)
 
     ax.set_xlabel("Per-protein RMSD (Å)")
     ax.set_ylabel("Fraction of proteins with RMSD ≤ x")
