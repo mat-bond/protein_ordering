@@ -48,9 +48,6 @@ The differentiable permutation formulation is based on:
 > Gonzalo Mena et al. "Learning Latent Permutations with Gumbel-Sinkhorn
 > Networks." ICLR, 2018.
 
-The paper is cited for the method. [No source code from the reference
-implementation is included in this repository.]
-
 ## Protein dataset
 
 The protein dataset and train/validation/test split are derived from the

@@ -131,7 +131,7 @@ This negative result provides a useful contrast to the Fiedler model: having a d
 
 ### Data
 
-The processed protein structures in this directory are derived from the
+The protein structures used in this project are derived from the
 CATH-based dataset released with:
 
 John Ingraham et al., "Generative Models for Graph-Based Protein Design,"
@@ -530,7 +530,7 @@ protein_ordering/
 │   └── train_rmsd_decoder.py
 ├── pyproject.toml
 ├── uv.lock
-└── README.md               # checkpoints and evaluation outputs
+└── README.md               
 ```
 
 ---
