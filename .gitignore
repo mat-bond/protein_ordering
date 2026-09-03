@@ -12,6 +12,7 @@ ddpm-butterflies-128/
 .jukit/
 results/
 
+src/analyse_results.py
 
 *.ckpt
 *.npy
