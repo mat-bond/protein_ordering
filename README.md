@@ -502,16 +502,22 @@ uv run python src/train_rmsd_decoder.py --config configs/rmsd.yaml \
 
 ```text
 protein_ordering/
-├── configs/                  # experiment configuration files
+├── configs/          # experiment configurations
+├── data/             # processed CATH train/validation/test splits
+├── results/          # final metrics, per-protein results, and figures
 ├── src/
-│   ├── benchmarks/           # deterministic ordering baselines
-│   ├── datasets/             # protein point-cloud datasets
-│   ├── metrics/              # structural and ordering losses
-│   ├── models/               # learned ordering architectures
-│   ├── training/             # corruption and training utilities
-│   ├── train_fiedler.py      # differentiable Fiedler experiments
-│   └── train_rmsd_decoder.py # direct permutation decoder + benchmarks
-└── results/                  # checkpoints and evaluation outputs
+│   ├── benchmarks/   # deterministic geometric baselines
+│   ├── datasets/     # protein point-cloud datasets
+│   ├── metrics/      # ordering and structural losses
+│   ├── models/       # Fiedler and direct permutation models
+│   ├── training/     # training and corruption utilities
+│   ├── result_analysis/  # scripts used to generate final analyses
+│   ├── tests/        # dataset and baseline tests
+│   ├── train_fiedler.py
+│   └── train_rmsd_decoder.py
+├── pyproject.toml
+├── uv.lock
+└── README.md               # checkpoints and evaluation outputs
 ```
 
 ---
