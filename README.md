@@ -131,11 +131,25 @@ This negative result provides a useful contrast to the Fiedler model: having a d
 
 ### Data
 
-The dataset is derived from the **CATH protein structure set** released with *Generative Models for Graph-Based Protein Design* [Ingraham et al., 2019](#ingraham2019). The original release provides protein-chain records in `chain_set.jsonl` together with fixed train, validation, and test assignments in `chain_set_splits.json`.
+The processed protein structures in this directory are derived from the
+CATH-based dataset released with:
 
-For preprocessing, only the Cα coordinates of each chain were extracted and stored as `float32` tensors. Missing coordinates were preserved as `NaN` values so that they could be handled explicitly using validity masks during training and evaluation. Records were discarded if the chain name was not present in the published split file, if Cα coordinates were missing or malformed, if the chain contained fewer than 30 residues, if all Cα coordinates were non-finite, or if fewer than 80% of residues had finite Cα coordinates. The remaining chains were serialized into separate `train.pt`, `validation.pt`, and `test.pt` files without changing their original split assignment.
+John Ingraham et al., "Generative Models for Graph-Based Protein Design,"
+NeurIPS 2019.
 
-Individual experiments apply additional sequence-length constraints at dataset-loading time rather than during preprocessing. The resulting learning task therefore uses the original CATH-derived train/validation/test split while representing each protein only through its Cα backbone coordinates. During evaluation, each protein is deterministically permuted so that all learned and deterministic ordering methods are evaluated on the same unordered input.
+The original train, validation, and test assignments were preserved.
+The data were modified for this project by extracting Cα coordinates,
+filtering malformed/incomplete chains, and serializing the resulting records
+as PyTorch tensors.
+
+CATH is made available under the Creative Commons Attribution 4.0
+International (CC BY 4.0) license.
+
+CATH:
+https://www.cathdb.info/
+
+Original dataset release:
+https://people.csail.mit.edu/ingraham/graph-protein-design/data/cath/
 
 ### Direction ambiguity
 
@@ -532,6 +546,19 @@ Fine-tuning with structural MSE reduces mean test RMSD from **4.72 Å to 3.03 Å
 
 The experiments therefore suggest that the main value of differentiable protein ordering is not simply replacing geometric heuristics with learned predictions. Instead, differentiability allows the representation used for ordering to be optimized directly for downstream structural reconstruction — exposing and partially correcting the mismatch between local connectivity prediction and global sequence recovery.
 
+## License
+
+Original code in this repository is released under the BSD 3-Clause License.
+See [LICENSE](LICENSE).
+
+This project contains or derives from third-party software distributed under
+separate permissive licenses, including Equiformer (MIT) and the codebase
+associated with *Point Cloud Synthesis Using Inner Product Transforms*
+(BSD 3-Clause). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+details.
+
+The processed protein data are derived from CATH-based data and are subject
+to separate data licensing and attribution requirements.
 
 ## References
 <a id="equiformer2023"></a>
