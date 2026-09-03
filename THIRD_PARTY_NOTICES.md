@@ -59,5 +59,4 @@ dataset released with:
 > John Ingraham et al. "Generative Models for Graph-Based Protein Design."
 > NeurIPS, 2019.
 
-The underlying structures are derived from CATH. Dataset licensing and
-attribution are documented separately in `data/README.md`.
+The underlying structures are derived from CATH. Dataset provenance and preprocessing are documented in the main README.
