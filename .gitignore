@@ -85,6 +85,7 @@ results_dev/
 results_bak/
 configs_dev/
 configs_bak/
+data/ 
 
 # Translations
 *.mo
