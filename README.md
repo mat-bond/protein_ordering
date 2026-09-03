@@ -238,7 +238,7 @@ The improvement is also visible throughout the error distribution:
 
 The median changes very little because already-successful proteins were already reconstructed almost perfectly. Instead, structural fine-tuning mainly improves the **failure tail**, converting additional proteins from globally incorrect orderings into near-exact reconstructions.
 
-![ECDF of per-protein test RMSD](results/figures/rmsd_ecdf.png)
+![ECDF of per-protein test RMSD](results/rmsd_ecdf.png)
 
 *Empirical cumulative distribution of per-protein RMSD on the held-out test set. Higher curves indicate a larger fraction of proteins reconstructed below a given RMSD threshold. The linear x-axis is truncated at 35 Å for readability.*
 
@@ -264,7 +264,7 @@ $$
 
 The learned model should therefore not be interpreted as universally superior. Instead, it obtains better structural reconstruction according to RMSD while the geometric heuristic remains stronger on the residue-wise permutation metric.
 
-![Per-protein RMSD regime transitions between the 3.8 Å Hamiltonian baseline and fine-tuned Fiedler model](results/figures/fiedler_vs_3.8A_transition_matrix.png)
+![Per-protein RMSD regime transitions between the 3.8 Å Hamiltonian baseline and fine-tuned Fiedler model](results/fiedler_vs_3.8A_transition_matrix.png)
 
 *Per-protein RMSD regime transitions from the 3.8 Å Hamiltonian baseline to the Fiedler model after MSE fine-tuning. Most proteins are reconstructed nearly exactly by both methods. However, Fiedler + MSE rescues 48 of the 122 (>10 Å) baseline failures, including 42 proteins that move directly from catastrophic error to <0.1 Å RMSD. Conversely, 36 proteins that were below 10 Å with the baseline become >10 Å failures under Fiedler. This asymmetric redistribution helps explain why Fiedler + MSE achieves a lower mean RMSD despite not uniformly improving every protein.*
 
@@ -321,7 +321,7 @@ Because the Fiedler pipeline is differentiable, downstream structural loss can r
 
 The direct permutation decoder provides a second approach to differentiable ordering. Rather than predicting a graph and extracting an ordering through its Fiedler vector, this model directly predicts a soft permutation matrix assigning unordered input points to sequence positions.
 
-![Per-protein RMSD distribution for the PermCE-trained direct decoder](results/figures/rmsd_decoder_test_hist.png)
+![Per-protein RMSD distribution for the PermCE-trained direct decoder](results/rmsd_decoder_test_hist.png)
 
 *Per-protein RMSD distribution for the PermCE-trained direct decoder on the held-out test set. Unlike the Fiedler and geometric approaches, the model produces essentially no near-exact reconstructions, but its errors are more concentrated in the moderate-RMSD regime.*
 
@@ -341,7 +341,7 @@ All methods exhibit a large population of near-perfect reconstructions together 
 
 ### Effect of MSE fine-tuning
 
-![Effect of structural MSE fine-tuning on per-protein RMSD](results/figures/fiedler_edgece_vs_edgece_mse_scatter.png)
+![Effect of structural MSE fine-tuning on per-protein RMSD](results/fiedler_edgece_vs_edgece_mse_scatter.png)
 
 *Paired per-protein test RMSD before and after structural MSE fine-tuning of the Fiedler model. Both axes are logarithmic, and each point represents the same protein under the same deterministic input permutation. Most proteins change little: 74.3% differ by at most 0.1 Å and the median paired RMSD change is approximately zero. The improvement in mean RMSD from 4.72 Å to 3.03 Å is instead driven by a smaller number of large corrections. Of the 150 proteins with RMSD >10 Å before fine-tuning, 55 are reduced below 10 Å and 50 are reconstructed to <0.1 Å. Conversely, 15 previously non-catastrophic examples become >10 Å failures after fine-tuning.*
 
